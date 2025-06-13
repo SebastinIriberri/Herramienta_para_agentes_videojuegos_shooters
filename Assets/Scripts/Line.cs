@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
-public class Line : MonoBehaviour {
+public class Line{
     const float verticalLineGradient = 1e5f;
 
     float gradient;
