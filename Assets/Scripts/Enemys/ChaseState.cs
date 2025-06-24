@@ -3,40 +3,28 @@ using UnityEngine;
 public class ChaseState : IEnemyState {
     private Unit unit;
     private EnemyShooter shooter;
-    public void EnterState(EnemyController controller, EnemyManager manager) {
-        Debug.Log("Enemy: Entra en estado de persecución");
 
-        if (unit == null) {
-            unit = controller.GetComponent<Unit>();
-        }
-        if (shooter == null) {
-            shooter = controller.GetComponent<EnemyShooter>();
-        }
-        if (unit != null && manager.player != null) {
-            unit.StartFollowing(manager.player);
+    public void EnterState(EnemyController controller, EnemyManager manager) {
+        Debug.Log("Enemy: Entra en persecución");
+        unit ??= controller.GetComponent<Unit>();
+        shooter ??= controller.GetComponent<EnemyShooter>();
+
+        if (unit != null && manager.currentTarget != null) {
+            unit.StartFollowing(manager.currentTarget);
         }
     }
 
     public void UpdateState(EnemyController controller, EnemyManager manager) {
-        if (manager.player == null) { 
-            return; 
-        }
-        if (Vector3.Distance(controller.transform.position, manager.player.position) > manager.detectionRange) {
+        if (manager.currentTarget == null) {
             controller.TransitionToState(new PatrolState());
             return;
         }
 
+        unit?.StartFollowing(manager.currentTarget);
         shooter?.TryShoot();
-
     }
 
     public void ExitState(EnemyController controller, EnemyManager manager) {
-        if (unit == null) {
-            unit = controller.GetComponent<Unit>();
-        }
-
-        if (unit != null) {
-            unit.StopFollowing();
-        }
+        unit?.StopFollowing();
     }
 }

@@ -71,9 +71,16 @@ public class Unit : MonoBehaviour {
                 Vector3 direction = path.lookPoints[pathIndex] - transform.position;
                 direction.y = 0f;
 
-                if (direction != Vector3.zero) {
-                    Quaternion targetRotation = Quaternion.LookRotation(direction);
-                    transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * turnSpeed);
+                //if (direction != Vector3.zero) {
+                //    Quaternion targetRotation = Quaternion.LookRotation(direction);
+                //    transform.rotation = Quaternion.Lerp(transform.rotation, targetRotation, Time.deltaTime * turnSpeed);
+                //}
+                if (direction.sqrMagnitude > 0.01f) {
+                    // Solo rotación sobre Y
+                    Quaternion targetRotation = Quaternion.LookRotation(direction.normalized, Vector3.up);
+                    Vector3 currentEuler = transform.eulerAngles;
+                    float yRotation = Mathf.LerpAngle(currentEuler.y, targetRotation.eulerAngles.y, Time.deltaTime * turnSpeed);
+                    transform.rotation = Quaternion.Euler(0, yRotation, 0); // solo rotar en Y
                 }
                 // Movimiento hacia adelante solo en plano
                 transform.Translate(Vector3.forward * Time.deltaTime * speed * speedPercent, Space.Self);
