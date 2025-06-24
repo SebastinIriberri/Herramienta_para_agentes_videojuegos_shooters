@@ -1,10 +1,12 @@
 using UnityEngine;
 
 public class EnemyShooter : MonoBehaviour {
-    public Transform firePoint;               // Lugar de donde salen las balas
-    public GameObject bulletPrefab;           // Prefab de la bala
+    [Header("Configuración de disparo")]
+    public Transform firePoint;               // Punto de salida de la bala    
+    public BulletSettings bulletSettings; // Flyweight asignado
     public float fireRate = 1f;               // Disparos por segundo
     public float fireRange = 10f;             // Rango máximo de disparo
+    public BulletPool bulletPool; // Pool asignado a este tipo de bala
 
     private float shootTimer;
     private Transform player;
@@ -21,6 +23,7 @@ public class EnemyShooter : MonoBehaviour {
         if (player == null) return;
 
         float distance = Vector3.Distance(transform.position, player.position);
+
         if (distance <= fireRange && shootTimer <= 0f && CanSeePlayer()) {
             Shoot();
             shootTimer = 1f / fireRate;
@@ -28,10 +31,20 @@ public class EnemyShooter : MonoBehaviour {
     }
 
     private void Shoot() {
-        if (bulletPrefab == null || firePoint == null) return;
+        if (firePoint == null || bulletSettings == null || bulletPool == null) return;
 
-        Instantiate(bulletPrefab, firePoint.position, firePoint.rotation);
-        Debug.Log("Enemy dispara!");
+        GameObject bulletGO = bulletPool.GetBullet();
+        bulletGO.transform.position = firePoint.position;
+        bulletGO.transform.rotation = firePoint.rotation;
+
+        Bullet bullet = bulletGO.GetComponent<Bullet>();
+        if (bullet != null) {
+            bullet.settings = bulletSettings;
+            Vector3 shootDir = (player.position - firePoint.position).normalized;
+            bullet.SetDirection(shootDir);
+        }
+
+        Debug.Log("Enemy dispara con su pool y settings");
     }
 
     private bool CanSeePlayer() {
@@ -41,4 +54,13 @@ public class EnemyShooter : MonoBehaviour {
         }
         return false;
     }
+
+    // Gizmo para depurar visualmente la dirección del disparo
+    private void OnDrawGizmosSelected() {
+        if (firePoint != null) {
+            Gizmos.color = Color.green;
+            Gizmos.DrawRay(firePoint.position, firePoint.forward * 2f);
+        }
+    }
+
 }
