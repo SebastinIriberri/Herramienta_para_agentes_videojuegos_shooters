@@ -1,3 +1,4 @@
+using AudioSystem;
 using UnityEngine;
 
 public class EnemyShooter : MonoBehaviour {
@@ -7,6 +8,7 @@ public class EnemyShooter : MonoBehaviour {
     public float fireRate = 1f;               // Disparos por segundo
     public float fireRange = 10f;             // Rango máximo de disparo
     public BulletPool bulletPool; // Pool asignado a este tipo de bala
+    public SoundData shootSound;
 
     private float shootTimer;
     private Transform player;
@@ -42,6 +44,13 @@ public class EnemyShooter : MonoBehaviour {
             bullet.settings = bulletSettings;
             Vector3 shootDir = (player.position - firePoint.position).normalized;
             bullet.SetDirection(shootDir);
+        }
+        if (shootSound != null) {
+            SoundManager.Instance
+                .CreateSound()
+                .WithPosition(firePoint.position)
+                .WithRandomPitch()
+                .Play(shootSound);
         }
 
         Debug.Log("Enemy dispara con su pool y settings");
