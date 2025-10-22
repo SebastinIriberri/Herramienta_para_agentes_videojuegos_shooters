@@ -18,6 +18,7 @@ public class Node : IHeapItem<Node> {
         gridX = _gridX;
         gridY = _gridY;
         movementPenalty = _penalty;
+        gCost = int.MaxValue;
     }
     public int fCost {
         get { return gCost + hCost; }
