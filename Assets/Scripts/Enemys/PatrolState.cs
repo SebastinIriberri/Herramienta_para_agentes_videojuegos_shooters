@@ -1,51 +1,44 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 
-public class PatrolState :IEnemyState {
-    private Unit unit;
-    private bool isWaiting = false;
-    private EnemyManager cachedManager;
+public class PatrolState : IEnemyState {
+    private bool isWaiting;
+    private EnemyManager cached;
 
-    public void EnterState(EnemyController controller, EnemyManager manager) {
-        Debug.Log("Enemy: Entra en patrullaje");
-        if (unit == null) unit = controller.GetComponent<Unit>();
-        cachedManager = manager;
+    public void Enter(EnemyManager m) {
+        cached = m;
+        isWaiting = false;
 
-        if (unit != null && manager.patrolPoints.Length > 0) {
-            Transform patrolTarget = manager.patrolPoints[manager.currentPatrolIndex];
-            unit.StartFollowing(patrolTarget);
+        if (m.unit != null && m.patrolPoints.Length > 0) {
+            Transform p = m.patrolPoints[m.currentPatrolIndex];
+            m.unit.StartFollowing(p);
         }
     }
 
-    public void UpdateState(EnemyController controller, EnemyManager manager) {
-        if (unit == null || manager.patrolPoints.Length == 0) return;
-
-        // Si hay un objetivo (jugador) en rango y en vista, transiciona a persecución
-        if (manager.currentTarget != null) {
-            controller.TransitionToState(new ChaseState());
+    public void Update(EnemyManager m) {
+        // Si hay target en FOV/trigger => CHASE
+        if (m.currentTarget != null) {
+            m.GoToChase();
             return;
         }
 
-        Transform patrolTarget = manager.patrolPoints[manager.currentPatrolIndex];
-        float distance = Vector3.Distance(controller.transform.position, patrolTarget.position);
+        if (m.unit == null || m.patrolPoints.Length == 0) return;
 
-        if (unit.HasReachedDestination && !isWaiting) {
-            isWaiting = true;
-            controller.StartCoroutine(WaitAndGoToNext(controller));
+        if (m.unit.HasReachedDestination && !isWaiting) {
+            m.StartCoroutine(WaitThenNextPoint());
         }
     }
 
-    private IEnumerator WaitAndGoToNext(EnemyController controller) {
-        yield return new WaitForSeconds(cachedManager.timeToChanguedPatrolPoint);
-        cachedManager.currentPatrolIndex = (cachedManager.currentPatrolIndex + 1) % cachedManager.patrolPoints.Length;
-        Transform nextPoint = cachedManager.patrolPoints[cachedManager.currentPatrolIndex];
-        unit.StartFollowing(nextPoint);
+    public void Exit(EnemyManager m) {
         isWaiting = false;
+        m.unit?.StopFollowing();
     }
 
-    public void ExitState(EnemyController controller, EnemyManager manager) {
-        unit?.StopFollowing();
+    private IEnumerator WaitThenNextPoint() {
+        isWaiting = true;
+        yield return new WaitForSeconds(cached.waitAtPointSeconds);
+        cached.currentPatrolIndex = (cached.currentPatrolIndex + 1) % cached.patrolPoints.Length;
+        cached.unit.StartFollowing(cached.patrolPoints[cached.currentPatrolIndex]);
         isWaiting = false;
     }
 }

@@ -1,28 +1,50 @@
 using UnityEngine;
 
-public class AttackState {
-    //public void EnterState(EnemyController controller, EnemyManager manager) {
-    //    Debug.Log("Enemy: Entra en estado de persecución");
-    //}
+public class AttackState : IEnemyState {
+    private float lostSightTimer;
+   
+    public void Enter(EnemyManager m) {
+        lostSightTimer = 0f;
+        m.unit?.StopFollowing(); 
+    }
+    public void Update(EnemyManager m) {
+        if (m.currentTarget == null) {
+            m.GoToPatrol();
+            return;
+        }
 
-    //public void UpdateState(EnemyController controller, EnemyManager manager) {
-    //    controller.transform.position = Vector3.MoveTowards(
-    //        controller.transform.position,
-    //        manager.player.position,
-    //        manager.speed * Time.deltaTime
-    //    );
+        float dist = Vector3.Distance(m.transform.position, m.currentTarget.position);
+        if (dist > m.attackRange + m.exitAttackExtra) {
+            m.GoToChase();
+            return;
+        }
 
-    //    float distance = Vector3.Distance(controller.transform.position, manager.player.position);
+       
+        Vector3 dir = m.currentTarget.position - m.transform.position;
+        dir.y = 0f;
+        if (dir.sqrMagnitude > 0.0001f) {
+            Quaternion lookRot = Quaternion.LookRotation(dir.normalized, Vector3.up);
+            Vector3 e = m.transform.eulerAngles;
+            float y = Mathf.LerpAngle(e.y, lookRot.eulerAngles.y, Time.deltaTime * m.turnSpeed);
+            m.transform.rotation = Quaternion.Euler(0f, y, 0f);
+        }
 
-    //    if (distance < manager.attackRange) {
-    //        controller.TransitionToState(new AttackState());
-    //    }
-    //    else if (distance > manager.detectionRange + 5f) {
-    //        controller.TransitionToState(new PatrolState());
-    //    }
-    //}
+        // Ver línea de visión
+        bool canSee = m.IsInFOV(m.currentTarget) && m.HasLineOfSight(m.currentTarget, m.detectionRange);
+        if (canSee) {
+            m.shooter?.TryShoot(m.currentTarget);
+            lostSightTimer = 0f;
+        }
+        else {
+            lostSightTimer += Time.deltaTime;
+            if (lostSightTimer >= m.maxLostSightTime) {
+                m.GoToPatrol();
+                return;
+            }
+        }
+    }
 
-    //public void ExitState(EnemyController controller, EnemyManager manager) {
-    //    Debug.Log("Enemy: Sale del estado de persecución");
-    //}
+    public void Exit(EnemyManager m) {
+        lostSightTimer = 0f;
+    }
 }
