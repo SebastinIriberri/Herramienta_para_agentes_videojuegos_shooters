@@ -1,50 +1,44 @@
-using AudioSystem;
 using UnityEngine;
+using AudioSystem;
 
 public class EnemyShooter : MonoBehaviour {
-    [Header("Configuración de disparo")]
-    public Transform firePoint;               // Punto de salida de la bala    
-    public BulletSettings bulletSettings; // Flyweight asignado
-    public float fireRate = 1f;               // Disparos por segundo
-    public float fireRange = 10f;             // Rango máximo de disparo
-    public BulletPool bulletPool; // Pool asignado a este tipo de bala
-    public SoundData shootSound;
+    [HideInInspector] public Transform firePoint;
+    [HideInInspector] public BulletSettings bulletSettings;
+    [HideInInspector] public float fireRate = 3f;
+    [HideInInspector] public float fireRange = 12f;
+    [HideInInspector] public BulletPool bulletPool;
+    [HideInInspector] public SoundData shootSound;
 
     private float shootTimer;
-    private Transform player;
-
-    private void Awake() {
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
-    }
 
     private void Update() {
         shootTimer -= Time.deltaTime;
     }
 
-    public void TryShoot() {
-        if (player == null) return;
+    public void TryShoot(Transform target) {
+        if (!target) return;
+        if (!firePoint || !bulletSettings || !bulletPool) return;
 
-        float distance = Vector3.Distance(transform.position, player.position);
+        float dist = Vector3.Distance(transform.position, target.position);
+        if (dist > fireRange || shootTimer > 0f) return;
 
-        if (distance <= fireRange && shootTimer <= 0f && CanSeePlayer()) {
-            Shoot();
-            shootTimer = 1f / fireRate;
+        // Checar Raycast desde el arma al objetivo
+        Vector3 dir = (target.position + Vector3.up * 1.3f - firePoint.position).normalized;
+        if (Physics.Raycast(firePoint.position, dir, out RaycastHit hit, fireRange)) {
+            if (!hit.collider.CompareTag("Player")) return; // algo bloquea
         }
-    }
 
-    private void Shoot() {
-        if (firePoint == null || bulletSettings == null || bulletPool == null) return;
-
+        // Disparo con pool + flyweight
         GameObject bulletGO = bulletPool.GetBullet();
         bulletGO.transform.position = firePoint.position;
-        bulletGO.transform.rotation = firePoint.rotation;
+        bulletGO.transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
 
         Bullet bullet = bulletGO.GetComponent<Bullet>();
         if (bullet != null) {
             bullet.settings = bulletSettings;
-            Vector3 shootDir = (player.position - firePoint.position).normalized;
-            bullet.SetDirection(shootDir);
+            bullet.SetDirection(dir);
         }
+
         if (shootSound != null) {
             SoundManager.Instance
                 .CreateSound()
@@ -53,23 +47,6 @@ public class EnemyShooter : MonoBehaviour {
                 .Play(shootSound);
         }
 
-        Debug.Log("Enemy dispara con su pool y settings");
+        shootTimer = 1f / fireRate;
     }
-
-    private bool CanSeePlayer() {
-        Vector3 direction = (player.position - firePoint.position).normalized;
-        if (Physics.Raycast(firePoint.position, direction, out RaycastHit hit, fireRange)) {
-            return hit.collider.CompareTag("Player");
-        }
-        return false;
-    }
-
-    // Gizmo para depurar visualmente la dirección del disparo
-    private void OnDrawGizmosSelected() {
-        if (firePoint != null) {
-            Gizmos.color = Color.green;
-            Gizmos.DrawRay(firePoint.position, firePoint.forward * 2f);
-        }
-    }
-
 }
