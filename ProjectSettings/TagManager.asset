@@ -15,9 +15,9 @@ TagManager:
   - Unwalkable
   - Road
   - Grass
-  - 
-  - 
-  - 
+  - Player
+  - Enemy
+  - Projectile
   - 
   - 
   - 
