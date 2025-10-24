@@ -1,6 +1,5 @@
 using UnityEngine;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -8,7 +7,6 @@ public class PathRequestManager : MonoBehaviour {
     Queue<PathResult> results = new Queue<PathResult>();
     static PathRequestManager instance;
     Pathfinding pathfinding;
-
 
     private void Awake() {
         instance = this;
@@ -26,11 +24,14 @@ public class PathRequestManager : MonoBehaviour {
             }
         }
     }
+
     public static void RequestPath(PathRequest request) {
-        ThreadStart threadStart = delegate {
+        // *** CORREGIDO: crear un hilo real ***
+        Thread thread = new Thread(() => {
             instance.pathfinding.FindPath(request, instance.FinishedProcessingPath);
-        };
-        threadStart.Invoke();
+        });
+        thread.IsBackground = true;
+        thread.Start();
     }
 
     public void FinishedProcessingPath(PathResult result) {
@@ -38,8 +39,8 @@ public class PathRequestManager : MonoBehaviour {
             results.Enqueue(result);
         }
     }
-
 }
+
 public struct PathResult {
     public Vector3[] path;
     public bool success;
@@ -51,10 +52,12 @@ public struct PathResult {
         this.callback = callback;
     }
 }
+
 public struct PathRequest {
     public Vector3 pathStart;
     public Vector3 pathEnd;
     public Action<Vector3[], bool> callback;
+
     public PathRequest(Vector3 _start, Vector3 _end, Action<Vector3[], bool> _callback) {
         pathStart = _start;
         pathEnd = _end;

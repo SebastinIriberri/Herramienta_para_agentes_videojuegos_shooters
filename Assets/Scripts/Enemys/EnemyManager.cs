@@ -54,6 +54,8 @@ public class EnemyManager : MonoBehaviour {
     [Header("Dependencias (auto-asignadas)")]
     public SphereCollider visionCollider;
     public Unit unit;
+    public CapsuleCollider bodyCollider;
+    public Rigidbody rb;
     public EnemyShooter shooter;
     public EnemyAnimator enemyAnimator;
 
@@ -72,13 +74,33 @@ public class EnemyManager : MonoBehaviour {
             visionCollider = GetComponent<SphereCollider>();
             if (!visionCollider) {
                 visionCollider = gameObject.AddComponent<SphereCollider>();
-                visionCollider.isTrigger = true;
-                visionCollider.radius = detectionRange;
                 Debug.Log($"{name}: SphereCollider agregado automáticamente ?");
             }
         }
+        visionCollider.isTrigger = true;
+        visionCollider.radius = detectionRange;
 
-       
+        if (!bodyCollider) {
+            bodyCollider = GetComponent<CapsuleCollider>();
+            if (!bodyCollider) {
+                bodyCollider = gameObject.AddComponent<CapsuleCollider>();
+                Debug.Log($"{name}: CapsuleCollider agregado automáticamente ?");
+            }
+        }
+        // --- Auto-asignar Rigidbody ---
+        if (!rb) {
+            rb = GetComponent<Rigidbody>();
+            if (!rb) {
+                rb = gameObject.AddComponent<Rigidbody>();
+                rb.useGravity = true;
+                rb.isKinematic = true; // el movimiento lo controla el código, no la física
+                rb.constraints = RigidbodyConstraints.FreezeRotationX |
+                                 RigidbodyConstraints.FreezeRotationZ |
+                                 RigidbodyConstraints.FreezePositionY;
+                Debug.Log($"{name}: Rigidbody agregado y configurado automáticamente ?");
+            }
+        }
+
         if (!unit) {
             unit = GetComponent<Unit>();
             if (!unit) {
@@ -117,7 +139,15 @@ public class EnemyManager : MonoBehaviour {
             if (!unit) unit = gameObject.AddComponent<Unit>();
         }
 
-      
+        if (unit) {
+            unit.ConfigureMovement(
+                moveSpeed,      
+                turnSpeed,      
+                stoppingDistance, 
+                /* turnDst */ 5f // si lo quieres también en el manager, expón una var pública y pásala aquí
+            );
+        }
+
         if (!shooter) {
             shooter = GetComponent<EnemyShooter>();
             if (!shooter) shooter = gameObject.AddComponent<EnemyShooter>();
@@ -128,15 +158,6 @@ public class EnemyManager : MonoBehaviour {
         if (!triggerCol) triggerCol = gameObject.AddComponent<SphereCollider>();
         triggerCol.isTrigger = true;
         triggerCol.radius = detectionRange;
-
-       
-        if (unit) {
-            unit.speed = moveSpeed;
-            unit.turnSpeed = turnSpeed;
-            unit.stoppingDst = stoppingDistance;
-        }
-
-       
         if (shooter) {
             shooter.firePoint = firePoint;
             shooter.bulletPool = bulletPool;

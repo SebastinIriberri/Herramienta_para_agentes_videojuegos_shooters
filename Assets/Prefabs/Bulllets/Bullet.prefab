@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 3481724188294528448}
   - component: {fileID: 5592091002511665212}
   - component: {fileID: -377501480856932194}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: Bullet
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -150,3 +150,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   settings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
+  hitMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  owner: {fileID: 0}
+  sweepRadius: 0.05

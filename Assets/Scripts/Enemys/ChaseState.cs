@@ -19,7 +19,6 @@ public class ChaseState : IEnemyState {
             return;
         }
 
-        // --- Distancias / histeresis ---
         float dist = Vector3.Distance(m.transform.position, m.currentTarget.position);
 
         if (dist <= m.attackRange) {
@@ -32,7 +31,7 @@ public class ChaseState : IEnemyState {
             return;
         }
 
-        // --- Visibilidad (FOV/LoS) para temporizador de pérdida ---
+        
         bool inFOV = m.IsInFOV(m.currentTarget);
         bool hasLOS = m.HasLineOfSight(m.currentTarget, m.detectionRange);
         bool considerVisible = inFOV && (!m.chaseRequireLineOfSight || hasLOS);
@@ -48,7 +47,7 @@ public class ChaseState : IEnemyState {
             }
         }
 
-        // --- Rotación suave hacia el objetivo (solo Y) ---
+       
         Vector3 dir = m.currentTarget.position - m.transform.position;
         dir.y = 0f;
         if (dir.sqrMagnitude > 0.0001f) {
@@ -58,7 +57,7 @@ public class ChaseState : IEnemyState {
             m.transform.rotation = Quaternion.Euler(0f, y, 0f);
         }
 
-        // --- Throttle de path requests ---
+      
         repathTimer -= Time.deltaTime;
         if (repathTimer <= 0f) {
             m.unit?.StartFollowing(m.currentTarget);
@@ -68,6 +67,6 @@ public class ChaseState : IEnemyState {
 
     public void Exit(EnemyManager m) {
         lostSightTimer = 0f;
-        // No detenemos Unit aquí: Attack/Patrol deciden según su lógica.
+        
     }
 }
