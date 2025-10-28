@@ -1,5 +1,8 @@
 using UnityEngine;
-
+/// <summary>
+/// Controla el disparo del enemigo, heredando de ShooterBase.
+/// Gestiona el cooldown y dispara hacia el objetivo cuando se le indica.
+/// </summary>
 public class EnemyShooter : ShooterBase {
 
     public void TryShoot(Transform target) {
