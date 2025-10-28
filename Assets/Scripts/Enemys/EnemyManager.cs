@@ -8,11 +8,12 @@ public class EnemyManager : MonoBehaviour {
     [Range(0, 360)]
     public float viewAngle = 120f;
 
-
     [Header("Movimiento (Unit)")]
-    public float moveSpeed = 3.5f;    
+    public float moveSpeed = 3.5f;
     public float turnSpeed = 6f;
     public float stoppingDistance = 1.25f;
+    [Tooltip("Distancia de adelantamiento para suavizar giros del path (se pasa al Unit).")]
+    public float turnDst = 5f;
 
     [Header("Patrullaje")]
     public Transform[] patrolPoints;
@@ -32,16 +33,8 @@ public class EnemyManager : MonoBehaviour {
     [Tooltip("Si es true, además de FOV exige línea de visión para NO aumentar el temporizador de pérdida.")]
     public bool chaseRequireLineOfSight = false;
 
-    [Header("Disparo")]
-    public Transform firePoint;       
-    public BulletPool bulletPool;     
-    public BulletSettings bulletSettings;
-    public float fireRate = 3f;
-    public float fireRange = 12f;
-    public AudioSystem.SoundData shootSound;
-
-    [Header("Comportamiento de combate")]
-    [Tooltip("Tiempo que el enemigo espera sin ver al jugador antes de volver a patrullar.")]
+    [Header("Combate (comportamiento)")]
+    [Tooltip("Tiempo que el enemigo espera sin ver al jugador antes de volver a patrullar (en ATTACK).")]
     public float maxLostSightTime = 3f;
 
     [Tooltip("Margen adicional de distancia antes de salir del modo ataque.")]
@@ -49,123 +42,75 @@ public class EnemyManager : MonoBehaviour {
 
     [Header("Debug")]
     [SerializeField] private string currentStateName = "(none)";
-    public Transform currentTarget;  
+    public Transform currentTarget;
 
     [Header("Dependencias (auto-asignadas)")]
     public SphereCollider visionCollider;
-    public Unit unit;
     public CapsuleCollider bodyCollider;
     public Rigidbody rb;
-    public EnemyShooter shooter;
+    public Unit unit;
+    public EnemyShooter shooter;     // sigue existiendo, pero su config vive en su inspector
     public EnemyAnimator enemyAnimator;
 
     // === FSM ===
     private IEnemyState currentState;
-    // Estados reusables (opcional, evita new cada vez)
     private readonly PatrolState patrolState = new PatrolState();
     private readonly ChaseState chaseState = new ChaseState();
     private readonly AttackState attackState = new AttackState();
 
-    private SphereCollider triggerCol;
-
     private void OnValidate() {
-       
-        if (!visionCollider) {
-            visionCollider = GetComponent<SphereCollider>();
-            if (!visionCollider) {
-                visionCollider = gameObject.AddComponent<SphereCollider>();
-                Debug.Log($"{name}: SphereCollider agregado automáticamente ?");
-            }
-        }
+        // Vision trigger
+        if (!visionCollider) visionCollider = GetComponent<SphereCollider>();
+        if (!visionCollider) visionCollider = gameObject.AddComponent<SphereCollider>();
         visionCollider.isTrigger = true;
         visionCollider.radius = detectionRange;
 
-        if (!bodyCollider) {
-            bodyCollider = GetComponent<CapsuleCollider>();
-            if (!bodyCollider) {
-                bodyCollider = gameObject.AddComponent<CapsuleCollider>();
-                Debug.Log($"{name}: CapsuleCollider agregado automáticamente ?");
-            }
-        }
-        // --- Auto-asignar Rigidbody ---
+        // Cuerpo/colisiones
+        if (!bodyCollider) bodyCollider = GetComponent<CapsuleCollider>();
+        if (!bodyCollider) bodyCollider = gameObject.AddComponent<CapsuleCollider>();
+
+        // Rigidbody (cinemático, controlado por código)
+        if (!rb) rb = GetComponent<Rigidbody>();
         if (!rb) {
-            rb = GetComponent<Rigidbody>();
-            if (!rb) {
-                rb = gameObject.AddComponent<Rigidbody>();
-                rb.useGravity = true;
-                rb.isKinematic = true; // el movimiento lo controla el código, no la física
-                rb.constraints = RigidbodyConstraints.FreezeRotationX |
-                                 RigidbodyConstraints.FreezeRotationZ |
-                                 RigidbodyConstraints.FreezePositionY;
-                Debug.Log($"{name}: Rigidbody agregado y configurado automáticamente ?");
-            }
+            rb = gameObject.AddComponent<Rigidbody>();
+            rb.useGravity = true;
+            rb.isKinematic = true;
+            rb.constraints = RigidbodyConstraints.FreezeRotationX |
+                             RigidbodyConstraints.FreezeRotationZ |
+                             RigidbodyConstraints.FreezePositionY;
         }
 
-        if (!unit) {
-            unit = GetComponent<Unit>();
-            if (!unit) {
-                unit = gameObject.AddComponent<Unit>();
-                Debug.Log($"{name}: Unit agregado automáticamente ?");
-            }
-        }
-
-        if (!shooter) {
-            shooter = GetComponent<EnemyShooter>();
-            if (!shooter) {
-                shooter = gameObject.AddComponent<EnemyShooter>();
-                Debug.Log($"{name}: EnemyShooter agregado automáticamente ?");
-            }
-        }
-
-        if (!enemyAnimator) {
-            enemyAnimator = GetComponent<EnemyAnimator>();
-            if (!enemyAnimator) {
-                enemyAnimator = gameObject.AddComponent<EnemyAnimator>();
-                Debug.Log($"{name}: EnemyAnimator agregado automáticamente ?");
-            }
-        }
-
-        
-        if (visionCollider) {
-            visionCollider.isTrigger = true;
-            visionCollider.radius = detectionRange;
-        }
-    }
-
-    private void Awake() {
-        
+        // Componentes lógicos
         if (!unit) {
             unit = GetComponent<Unit>();
             if (!unit) unit = gameObject.AddComponent<Unit>();
         }
-
-        if (unit) {
-            unit.ConfigureMovement(
-                moveSpeed,      
-                turnSpeed,      
-                stoppingDistance, 
-                /* turnDst */ 5f // si lo quieres también en el manager, expón una var pública y pásala aquí
-            );
-        }
-
         if (!shooter) {
             shooter = GetComponent<EnemyShooter>();
             if (!shooter) shooter = gameObject.AddComponent<EnemyShooter>();
         }
+        if (!enemyAnimator) {
+            enemyAnimator = GetComponent<EnemyAnimator>();
+            if (!enemyAnimator) enemyAnimator = gameObject.AddComponent<EnemyAnimator>();
+        }
+    }
 
-       
-        triggerCol = GetComponent<SphereCollider>();
+    private void Awake() {
+        // Asegurar referencias
+        if (!unit) unit = GetComponent<Unit>();
+        if (!unit) unit = gameObject.AddComponent<Unit>();
+
+        if (!shooter) shooter = GetComponent<EnemyShooter>();
+        if (!shooter) shooter = gameObject.AddComponent<EnemyShooter>();
+
+        // Trigger de visión
+        var triggerCol = GetComponent<SphereCollider>();
         if (!triggerCol) triggerCol = gameObject.AddComponent<SphereCollider>();
         triggerCol.isTrigger = true;
         triggerCol.radius = detectionRange;
-        if (shooter) {
-            shooter.firePoint = firePoint;
-            shooter.bulletPool = bulletPool;
-            shooter.bulletSettings = bulletSettings;
-            shooter.fireRate = fireRate;
-            shooter.fireRange = fireRange;
-            shooter.shootSound = shootSound;
-        }
+
+        // Configurar el Unit con parámetros del manager
+        unit.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
     }
 
     private void Start() {
@@ -176,7 +121,7 @@ public class EnemyManager : MonoBehaviour {
         currentState?.Update(this);
     }
 
-  
+    // === Transiciones ===
     public void TransitionTo(IEnemyState newState) {
         if (currentState == newState) return;
         currentState?.Exit(this);
@@ -185,31 +130,21 @@ public class EnemyManager : MonoBehaviour {
         currentState?.Enter(this);
     }
 
-    
+    // === Visión / Target ===
     private void OnTriggerEnter(Collider other) {
         if (!other.CompareTag("Player")) return;
-       
-        if (IsInFOV(other.transform)) {
-            currentTarget = other.transform;
-        }
+        if (IsInFOV(other.transform)) currentTarget = other.transform;
     }
 
     private void OnTriggerStay(Collider other) {
         if (!other.CompareTag("Player")) return;
-
-       
-        if (IsInFOV(other.transform)) {
-            currentTarget = other.transform;
-        }
-        else if (currentTarget == other.transform) {
-            currentTarget = null;
-        }
+        if (IsInFOV(other.transform)) currentTarget = other.transform;
+        else if (currentTarget == other.transform) currentTarget = null;
     }
 
     private void OnTriggerExit(Collider other) {
-        if (other.CompareTag("Player") && currentTarget == other.transform) {
+        if (other.CompareTag("Player") && currentTarget == other.transform)
             currentTarget = null;
-        }
     }
 
     public bool IsInFOV(Transform target) {
@@ -219,28 +154,23 @@ public class EnemyManager : MonoBehaviour {
         return angle < viewAngle * 0.5f;
     }
 
-    
     public bool HasLineOfSight(Transform target, float maxDistance) {
         if (!target) return false;
         Vector3 origin = transform.position + Vector3.up * 1.5f;
         Vector3 dir = (target.position + Vector3.up * 1.5f - origin).normalized;
-        if (Physics.Raycast(origin, dir, out RaycastHit hit, maxDistance)) {
+        if (Physics.Raycast(origin, dir, out RaycastHit hit, maxDistance))
             return hit.collider.CompareTag("Player");
-        }
         return false;
     }
 
-    // === Gizmos ===
     private void OnDrawGizmosSelected() {
-        // Rango de detección
+        // Detección
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectionRange);
-
-        // Rango de ataque
+        // Ataque
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, attackRange);
-
-        // FOV (visual)
+        // FOV
         Gizmos.color = Color.red;
         Vector3 fwd = transform.forward;
         Vector3 left = Quaternion.Euler(0, -viewAngle / 2f, 0) * fwd;
@@ -250,11 +180,10 @@ public class EnemyManager : MonoBehaviour {
         Gizmos.DrawLine(origin, origin + right * detectionRange);
     }
 
-    // === Helpers de transición desde estados ===
+    // Helpers de transición
     public void GoToPatrol() => TransitionTo(patrolState);
     public void GoToChase() => TransitionTo(chaseState);
     public void GoToAttack() => TransitionTo(attackState);
 
-    // Exponer el nombre del estado actual (solo lectura)
     public string GetCurrentStateName() => currentStateName;
 }
