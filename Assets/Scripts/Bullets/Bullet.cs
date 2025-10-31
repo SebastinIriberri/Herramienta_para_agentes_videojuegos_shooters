@@ -56,15 +56,15 @@ public class Bullet : MonoBehaviour {
 
         lifeTimer = (settings != null && settings.lifeTime > 0f) ? settings.lifeTime : 2f;
 
-        transform.position = position;
-        transform.rotation = Quaternion.LookRotation(direction, Vector3.up);
+        // Posición/rotación antes de activar
+        transform.SetPositionAndRotation(position, Quaternion.LookRotation(direction, Vector3.up));
 
         if (!string.IsNullOrEmpty(projectileLayerName)) {
             int layer = LayerMask.NameToLayer(projectileLayerName);
             if (layer >= 0) gameObject.layer = layer;
         }
 
-        // Ignorar colisiones con el owner (funciona también para triggers)
+        // Ignorar colisiones con el owner
         if (owner != null) {
             var ownerColliders = owner.GetComponentsInChildren<Collider>();
             foreach (var oc in ownerColliders) {
@@ -75,7 +75,7 @@ public class Bullet : MonoBehaviour {
         float v = (initialSpeedOverride > 0f) ? initialSpeedOverride : (settings ? settings.speed : 20f);
         rb.linearVelocity = direction.normalized * v;
 
-        gameObject.SetActive(true);
+        gameObject.SetActive(true); // Activar al final
     }
 
     void Update() {
@@ -126,7 +126,7 @@ public class Bullet : MonoBehaviour {
     }
 
     void Recycle() {
-        // Dejar de ignorar al owner (limpieza)
+        // Dejar de ignorar al owner
         if (owner != null) {
             var ownerColliders = owner.GetComponentsInChildren<Collider>();
             foreach (var oc in ownerColliders) {
@@ -135,6 +135,7 @@ public class Bullet : MonoBehaviour {
         }
 
         rb.linearVelocity = Vector3.zero;
+        owner = null; // limpieza defensiva
 
         if (pool) pool.ReturnBullet(gameObject);
         else gameObject.SetActive(false);

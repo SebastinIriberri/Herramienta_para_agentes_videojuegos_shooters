@@ -2,38 +2,56 @@ using UnityEngine;
 
 public class PlayerShooter : ShooterBase{
     [Header("Input")]
+    [Tooltip("Nombre del botón configurado en Input Manager (por defecto: Fire1).")]
     public string fireButton = "Fire1";
-    public bool automatic = true;
 
-    [Header("Apuntado por cámara")]
-    public Camera aimCamera;
-    public float rayDistance = 200f;
+    [Header("Opcional")]
+    [Tooltip("Pequeña dispersión aleatoria en grados (0 = sin dispersión).")]
+    [Range(0f, 10f)] public float spreadDegrees = 0f;
+
+    [Tooltip("Dibuja un rayo corto para verificar la dirección del firePoint.")]
+    public bool debugGizmo = true;
 
     protected override void Update() {
         base.Update();
 
-        bool wantsFire = automatic ? Input.GetButton(fireButton) : Input.GetButtonDown(fireButton);
-        if (!wantsFire || !CanShoot() || !firePoint) return;
+        // Seguridad básica
+        if (firePoint == null)
+            return;
 
-        Vector3 dir = GetAimDirection();
-        Fire(dir, transform);
-        ResetShootTimer();
-    }
+        // Verificar si el jugador presionó el botón de disparo
+        bool wantsFire = Input.GetButton(fireButton);
+        if (!wantsFire)
+            return;
 
-    Vector3 GetAimDirection() {
-        if (aimCamera) {
-            Ray r = aimCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(r, out var hit, rayDistance, ~0, QueryTriggerInteraction.Ignore)) {
-                
-                return (hit.point - firePoint.position).normalized;
-            }
-            else {
-               
-                return aimCamera.transform.forward;
-            }
+        // Comprobar cooldown
+        if (!CanShoot())
+            return;
+
+        // Dirección base = hacia donde apunta el firePoint
+        Vector3 dir = firePoint.forward;
+
+        // Si hay dispersión, aplicarla
+        if (spreadDegrees > 0f) {
+            dir = ApplySpread(dir, spreadDegrees);
         }
 
-       
-        return firePoint.forward;
+        // Disparar y reiniciar temporizador
+        Fire(dir, transform);
+        ResetShootTimer();
+
+        // Dibuja línea visual de depuración
+        if (debugGizmo) {
+            Debug.DrawRay(firePoint.position, dir * 1.5f, Color.cyan, 0.1f);
+        }
+    }
+
+    /// <summary>
+    /// Aplica una leve desviación angular aleatoria al vector base.
+    /// </summary>
+    Vector3 ApplySpread(Vector3 baseDir, float degrees) {
+        Quaternion randomYaw = Quaternion.AngleAxis(Random.Range(-degrees, degrees), Vector3.up);
+        Quaternion randomPitch = Quaternion.AngleAxis(Random.Range(-degrees, degrees), Vector3.right);
+        return (randomYaw * randomPitch) * baseDir;
     }
 }
