@@ -16,38 +16,35 @@ public class BulletPool : MonoBehaviour {
 
         for (int i = 0; i < poolSize; i++) {
             var b = CreateBullet();
-            b.SetActive(false);
-            _pool.Enqueue(b);
+            _pool.Enqueue(b); // ya viene inactivo
         }
     }
 
     GameObject CreateBullet() {
         GameObject go = Instantiate(bulletPrefab, transform);
+        // Asegurar que arranque inactivo
+        if (go.activeSelf) go.SetActive(false);
+
         var bullet = go.GetComponent<Bullet>();
         if (!bullet) {
             bullet = go.AddComponent<Bullet>();
             Debug.LogWarning($"{name}: El prefab no tenía Bullet, se agregó automáticamente.");
         }
-        // No lo activamos aquí; Awake/OnEnable se dispararán al usarse
-        return go;
+        return go; // INACTIVO
     }
 
     public GameObject GetBullet() {
         if (_pool.Count > 0) {
             var go = _pool.Dequeue();
-            go.SetActive(true);
+            // IMPORTANTE: NO activar aquí. Se activará en Bullet.Spawn(...)
             return go;
         }
 
         if (expandable) {
-            var go = CreateBullet();
-            go.SetActive(true);
+            var go = CreateBullet(); // ya inactivo
             return go;
         }
 
-        // Si no es expandable, puedes:
-        // - devolver null
-        // - o reciclar el más antiguo (depende de tu diseño)
         Debug.LogWarning($"{name}: Pool agotado y no expandable.");
         return null;
     }

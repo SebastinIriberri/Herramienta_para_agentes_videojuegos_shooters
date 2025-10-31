@@ -2,247 +2,181 @@
 using UnityEngine;
 
 public class Unit : MonoBehaviour {
-    // ======= Constantes internas =======
-    const float kMinPathUpdateTime = 0.2f;       // cadencia para revisar si el target se movió
-    const float kPathUpdateMoveThreshold = 0.5f; // si el target se movió más de esto, recalcular
-    const float kFrontCheckHeight = 0.5f;        // altura del raycast frontal
-    const float kFrontCheckDist = 0.8f;          // distancia del raycast frontal
-    const float kOverlapRadius = 0.3f;           // radio para detectar solapes con Obstacles
-    const string kObstacleTag = "Obstacle";      // Tag para obstáculos (como acordamos)
+    // === Parámetros de actualización de path ===
+    const float minPathUpdateTime = .2f;
 
-    // ======= Referencias externas =======
-    Path _path;
-    PathfindingGrid _grid; // referencia al grid para saber si estamos sobre walkable
+    [Header("Repath (anti-spam)")]
+    [Tooltip("Tiempo mínimo entre recalcular rutas para el MISMO target.")]
+    public float repathCooldown = 0.25f;
 
-    // ======= Parámetros configurados por EnemyManager =======
-    Transform _target;           // asignado por StartFollowing
-    float _speed;                // asignado por ConfigureMovement
-    float _turnSpeed;            // asignado por ConfigureMovement
-    float _turnDst;              // asignado por ConfigureMovement
-    float _stoppingDst;          // asignado por ConfigureMovement
+    [Tooltip("Si el target no se movió más que esto, no se recalcula.")]
+    public float targetMoveThreshold = 0.5f;
 
-    // ======= API pública (útil para FSM y Animator) =======
-    public System.Action OnDestinationReached;   // evento opcional, al llegar destino
+    [Tooltip("Si nosotros no avanzamos nada en este tiempo, forzar repath.")]
+    public float stuckRepathSeconds = 1.5f;
+
+    // === Movimiento ===
+    public Transform target;             // se asigna desde fuera (EnemyManager/Squad)
+    public float speed = 3.5f;
+    public float turnSpeed = 6f;
+    public float turnDst = 5f;
+    public float stoppingDst = 1.25f;
+
+    Path path;
+    public System.Action OnDestinationReached;
     public float CurrentSpeed { get; private set; }
     public bool HasReachedDestination { get; private set; }
 
-    // ======= Inicialización =======
-    private void Awake() {
-        // Busca un grid en la escena si no se asigna explícitamente
-        _grid = FindAnyObjectByType<PathfindingGrid>();
+    // Estado interno anti-spam
+    Transform _followTarget;
+    Vector3 _lastTargetPos;
+    float _lastRepathTime;
+
+    // Para detectar atascos locales
+    Vector3 _lastPos;
+    float _stuckTimer;
+
+    public void ConfigureMovement(float spd, float turnSpd, float stopDst, float turnDistance) {
+        speed = spd; turnSpeed = turnSpd; stoppingDst = stopDst; turnDst = turnDistance;
     }
 
-    /// <summary>
-    /// Permite inyectar el grid manualmente (si manejas múltiples grids).
-    /// </summary>
-    public void SetGrid(PathfindingGrid grid) => _grid = grid;
-
-    /// <summary>
-    /// Recibe la configuración desde EnemyManager (para no exponer campos públicos aquí).
-    /// </summary>
-    public void ConfigureMovement(float speed, float turnSpeed, float turnDst, float stoppingDst) {
-        _speed = speed;
-        _turnSpeed = turnSpeed;
-        _turnDst = turnDst;
-        _stoppingDst = stoppingDst;
-    }
-
-    // ======= Ciclo de vida del path =======
     public void OnPathFound(Vector3[] waypoints, bool pathSuccessful) {
-        if (!pathSuccessful || waypoints == null || waypoints.Length == 0) {
-            // Si falla, intenta un reintento suave
-            StartCoroutine(RepathSoon());
-            return;
-        }
-
-        _path = new Path(waypoints, transform.position, _turnDst, _stoppingDst);
+        if (!pathSuccessful || waypoints == null || waypoints.Length == 0) return;
+        path = new Path(waypoints, transform.position, turnDst, stoppingDst);
         StopCoroutine(nameof(FollowPath));
         StartCoroutine(nameof(FollowPath));
     }
 
-    IEnumerator RepathSoon() {
-        yield return new WaitForSeconds(0.3f);
-        SafeRequestPath();
-    }
-
     IEnumerator UpdatePath() {
-        // Pequeña espera inicial por si la escena acaba de cargar
-        if (Time.timeSinceLevelLoad < 0.3f)
-            yield return new WaitForSeconds(0.3f);
+        // pequeño delay al cargar escena
+        if (Time.timeSinceLevelLoad < .3f) yield return new WaitForSeconds(.3f);
 
-        SafeRequestPath();
+        // primer cálculo
+        RequestRepath();
 
-        float sqrMoveThreshold = kPathUpdateMoveThreshold * kPathUpdateMoveThreshold;
-        Vector3 lastTargetPos = _target ? _target.position : transform.position;
+        float sqrMoveThreshold = targetMoveThreshold * targetMoveThreshold;
+        Vector3 targetPosOld = _followTarget ? _followTarget.position : Vector3.positiveInfinity;
 
         while (true) {
-            yield return new WaitForSeconds(kMinPathUpdateTime);
+            yield return new WaitForSeconds(minPathUpdateTime);
 
-            if (_target == null) continue;
+            if (!_followTarget) continue;
 
-            Vector3 delta = _target.position - lastTargetPos;
-            if (delta.sqrMagnitude > sqrMoveThreshold) {
-                SafeRequestPath();
-                lastTargetPos = _target.position;
+            // Si el target se movió lo suficiente, pide nueva ruta (respetando cooldown)
+            if ((_followTarget.position - targetPosOld).sqrMagnitude > sqrMoveThreshold) {
+                TryRepath();
+                targetPosOld = _followTarget.position;
             }
         }
     }
 
-    void SafeRequestPath() {
-        if (_target == null) return;
-        PathRequestManager.RequestPath(new PathRequest(transform.position, _target.position, OnPathFound));
+    void RequestRepath() {
+        if (!_followTarget) return;
+        PathRequestManager.RequestPath(new PathRequest(transform.position, _followTarget.position, OnPathFound));
+        _lastRepathTime = Time.time;
+        _lastTargetPos = _followTarget.position;
     }
 
-    // ======= Movimiento sobre el path =======
-    IEnumerator FollowPath() {
-        if (_path == null || _path.lookPoints == null || _path.lookPoints.Length == 0)
-            yield break;
+    void TryRepath() {
+        // Enfriamiento
+        if (Time.time - _lastRepathTime < repathCooldown) return;
+        // Si el target apenas varió, omite
+        if ((_followTarget.position - _lastTargetPos).sqrMagnitude < targetMoveThreshold * targetMoveThreshold) return;
 
+        RequestRepath();
+    }
+
+    IEnumerator FollowPath() {
         bool followingPath = true;
         int pathIndex = 0;
         float speedPercent = 1f;
 
-        // Rotación inicial (solo Y)
-        Vector3 firstDir = _path.lookPoints[0] - transform.position;
+        // orientación inicial (solo Y)
+        Vector3 firstDir = path.lookPoints[0] - transform.position;
         firstDir.y = 0f;
         if (firstDir.sqrMagnitude > 0.0001f)
             transform.rotation = Quaternion.LookRotation(firstDir.normalized, Vector3.up);
 
-        // Variables anti-atasco
-        Vector3 lastPos = transform.position;
-        float stuckTimer = 0f;
+        _lastPos = transform.position;
+        _stuckTimer = 0f;
 
         while (true) {
-            // 0) Autocorrección si caí en no-walkable
-            if (_grid != null) {
-                Node currentNode = _grid.NodeFromWorldPoint(transform.position);
-                if (!currentNode.walkable) {
-                    // Empuja un poco hacia atrás y re-calcula
-                    transform.position += -transform.forward * 0.5f;
-                    SafeRequestPath();
-                    yield return new WaitForSeconds(0.4f);
-                    continue;
-                }
-            }
-
-            // 1) Avance entre límites de giro
             Vector2 pos2D = new Vector2(transform.position.x, transform.position.z);
-            while (_path.turnBoundaries[pathIndex].HasCrossedLine(pos2D)) {
-                if (pathIndex == _path.finishLineIndex) {
-                    followingPath = false;
-                    break;
-                }
-                else {
-                    pathIndex++;
-                }
+
+            while (path.turnBoundaries[pathIndex].HasCrossedLine(pos2D)) {
+                if (pathIndex == path.finishLineIndex) { followingPath = false; break; }
+                pathIndex++;
             }
 
             if (followingPath) {
                 HasReachedDestination = false;
 
-                // 2) Frenado suave al final del camino
-                if (pathIndex >= _path.slowDownIndex && _stoppingDst > 0f) {
-                    speedPercent = Mathf.Clamp01(
-                        _path.turnBoundaries[_path.finishLineIndex].DistanceFromPoint(pos2D) / _stoppingDst
-                    );
-
+                // slowdown suave
+                if (pathIndex >= path.slowDownIndex && stoppingDst > 0f) {
+                    speedPercent = Mathf.Clamp01(path.turnBoundaries[path.finishLineIndex].DistanceFromPoint(pos2D) / stoppingDst);
                     if (speedPercent < 0.1f ||
-                        Vector3.Distance(transform.position, _path.lookPoints[_path.finishLineIndex]) <= _stoppingDst) {
+                        Vector3.Distance(transform.position, path.lookPoints[path.finishLineIndex]) <= stoppingDst) {
                         followingPath = false;
                         HasReachedDestination = true;
                     }
                 }
 
-                // 3) Rotación suave (solo Y)
-                Vector3 direction = _path.lookPoints[pathIndex] - transform.position;
+                // rotación suave (solo Y)
+                Vector3 direction = path.lookPoints[pathIndex] - transform.position;
                 direction.y = 0f;
                 if (direction.sqrMagnitude > 0.01f) {
                     Quaternion targetRot = Quaternion.LookRotation(direction.normalized, Vector3.up);
-                    float y = Mathf.LerpAngle(transform.eulerAngles.y, targetRot.eulerAngles.y, Time.deltaTime * _turnSpeed);
-                    transform.rotation = Quaternion.Euler(0f, y, 0f);
+                    float yRot = Mathf.LerpAngle(transform.eulerAngles.y, targetRot.eulerAngles.y, Time.deltaTime * turnSpeed);
+                    transform.rotation = Quaternion.Euler(0f, yRot, 0f);
                 }
 
-                // 4) Detección simple de obstáculo frontal (raycast)
-                if (Physics.Raycast(transform.position + Vector3.up * kFrontCheckHeight,
-                                    transform.forward,
-                                    out RaycastHit hit,
-                                    kFrontCheckDist)) {
-                    if (!hit.collider.isTrigger && hit.collider.CompareTag(kObstacleTag)) {
-                        // Recalcular ruta si hay obstáculo delante
-                        SafeRequestPath();
-                        yield return new WaitForSeconds(0.3f);
-                        continue;
-                    }
+                // avance
+                transform.Translate(Vector3.forward * Time.deltaTime * speed * speedPercent, Space.Self);
+                CurrentSpeed = speed * speedPercent;
+
+                // anti-atasco → si no avanzamos, fuerza repath (respetando cooldown)
+                float moved = Vector3.Distance(transform.position, _lastPos);
+                if (moved < 0.02f) _stuckTimer += Time.deltaTime;
+                else _stuckTimer = 0f;
+
+                if (_stuckTimer > stuckRepathSeconds) {
+                    TryRepath();
+                    _stuckTimer = 0f;
                 }
 
-                // 5) Movimiento hacia adelante
-                transform.Translate(Vector3.forward * (_speed * speedPercent * Time.deltaTime), Space.Self);
-                CurrentSpeed = _speed * speedPercent;
-
-                // 6) Anti-atasco progresivo:
-                float moved = Vector3.Distance(transform.position, lastPos);
-                if (moved < 0.03f) {
-                    stuckTimer += Time.deltaTime;
-
-                    // 6.1) Recalcular pronto si empieza a atascarse
-                    if (stuckTimer > 1.0f && stuckTimer < 3.0f) {
-                        SafeRequestPath();
-                    }
-
-                    // 6.2) Si sigue atascado mucho tiempo, forzar salida a patrulla (FSM)
-                    if (stuckTimer > 3.0f) {
-                        Debug.Log($"{name}: atascado, forzando regreso a patrulla.");
-                        CurrentSpeed = 0f;
-                        HasReachedDestination = true;
-
-                        var manager = GetComponent<EnemyManager>();
-                        if (manager != null) manager.GoToPatrol();
-
-                        yield break; // salir del FollowPath
-                    }
-                }
-                else {
-                    stuckTimer = 0f;
-                }
-
-                // 7) Empuje suave si está solapado con obstáculo (por seguridad)
-                int obstacleLayer = LayerMask.GetMask("Obstacle");
-                if (obstacleLayer != 0 && Physics.CheckSphere(transform.position, kOverlapRadius, obstacleLayer)) {
-                    transform.position += -transform.forward * Time.deltaTime * 0.5f;
-                }
-
-                lastPos = transform.position;
+                _lastPos = transform.position;
             }
             else {
-                // Fin del path
                 HasReachedDestination = true;
                 CurrentSpeed = 0f;
-
-                // Dispatcher opcional
-                OnDestinationReached?.Invoke();
             }
 
             yield return null;
         }
     }
 
-    // ======= API de control =======
-    /// <summary>
-    /// Comienza a seguir al target (solicita path y se mantiene actualizando si se mueve).
-    /// </summary>
+    // === API pública, con anti-spam ===
     public void StartFollowing(Transform newTarget) {
-        _target = newTarget;
+        if (!newTarget) return;
+
+        // Si es el mismo target y estamos dentro del cooldown, ignora
+        if (_followTarget == newTarget && Time.time - _lastRepathTime < repathCooldown) return;
+
+        _followTarget = newTarget;
         HasReachedDestination = false;
-        StopAllCoroutines();
-        StartCoroutine(UpdatePath());
+
+        StopAllCoroutines();            // resetea cualquier seguimiento anterior
+        StartCoroutine(UpdatePath());   // arranca el ciclo de repath controlado
     }
 
-    /// <summary>
-    /// Detiene cualquier movimiento y marca destino como alcanzado.
-    /// </summary>
     public void StopFollowing() {
         StopAllCoroutines();
         CurrentSpeed = 0f;
         HasReachedDestination = true;
+        _followTarget = null;
+    }
+
+    public void OnDrawGizmos() {
+        if (path != null) path.DrawWithGizmos();
     }
 }
