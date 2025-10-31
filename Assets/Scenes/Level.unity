@@ -621,8 +621,8 @@ MonoBehaviour:
   firePoint: {fileID: 90637219}
   bulletPool: {fileID: 2002411202}
   bulletSettings: {fileID: 11400000, guid: c89b0802e7004944ba99d1ec7b46f609, type: 2}
-  cooldownSeconds: 1
-  fireRange: 12
+  cooldownSeconds: 0.35
+  fireRange: 25
   spawnOffset: 0.15
   shootSound: {fileID: 1912937518}
   shootTimer: 2
@@ -640,32 +640,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 0
   squadGroup: {fileID: 935909452}
+  archetype: {fileID: 11400000, guid: f81ea5f59c159374797dca31ee2e8c30, type: 2}
+  applyOnAwake: 1
+  applyInEditor: 1
   detectionRange: 12
   attackRange: 6
-  viewAngle: 160
+  viewAngle: 120
   moveSpeed: 3.5
   turnSpeed: 6
   stoppingDistance: 1.25
   turnDst: 5
-  patrolPoints:
-  - {fileID: 2029574754}
-  - {fileID: 90240889}
-  - {fileID: 1987278008}
-  waitAtPointSeconds: 1.5
-  currentPatrolIndex: 0
   targetMemorySeconds: 3
   lastSeenPos: {x: 0, y: 0, z: 0}
   lastSeenTime: 0
-  chaseMaxLostSightTime: 8
-  chaseExitDistanceExtra: 8
+  chaseMaxLostSightTime: 4
+  chaseExitDistanceExtra: 2
   chaseRepathInterval: 0.25
   chaseRequireLineOfSight: 1
   maxLostSightTime: 3
   exitAttackExtra: 0.5
+  combatObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  combatSkin: 0.05
+  strafeSpeedFactor: 0.6
+  strafeBlockedFramesToFlip: 6
   followRepathInterval: 0.35
   followAnchorMoveThreshold: 0.25
   followSeparationStrength: 0.6
   followSeparationRadius: 1.2
+  enableWander: 1
+  wanderCenter: {fileID: 0}
+  wanderRadius: 10
+  wanderWaitMin: 0.5
+  wanderWaitMax: 1.5
+  wanderRepathInterval: 0.75
+  wanderArriveTolerance: 0.35
+  wanderRetargetEvery: {x: 4, y: 7}
   currentStateName: (none)
   currentTarget: {fileID: 0}
   visionCollider: {fileID: 49957425}
@@ -675,6 +686,12 @@ MonoBehaviour:
   shooter: {fileID: 49957419}
   enemyAnimator: {fileID: 49957415}
   runtimeAnchor: {fileID: 0}
+  patrolPoints:
+  - {fileID: 2029574754}
+  - {fileID: 90240889}
+  - {fileID: 1987278008}
+  waitAtPointSeconds: 1.5
+  currentPatrolIndex: 0
 --- !u!95 &49957422
 Animator:
   serializedVersion: 7
@@ -2305,11 +2322,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ac0cb3887096e7645b4cdce36e61429a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 0
+  displayGridGizmos: 1
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 64
-  gridWorldSize: {x: 50, y: 50}
+  gridWorldSize: {x: 100, y: 100}
   nodeRadius: 0.3
   walkableRegions:
   - terrainMask:
@@ -2402,7 +2419,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 50, y: 1, z: 50}
+  m_LocalScale: {x: 100, y: 1, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -5774,9 +5791,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   leader: {fileID: 3993441216181660039}
-  ringRadius: 2.5
+  ringRadius: 4
   slotsFirstRing: 6
-  ringRadiusStep: 1.5
+  ringRadiusStep: 2
   extraSlotsPerRing: 0
   alignToLeaderForward: 0
 --- !u!1001 &936288408
@@ -9158,8 +9175,8 @@ MonoBehaviour:
   firePoint: {fileID: 1509313669}
   bulletPool: {fileID: 2002411202}
   bulletSettings: {fileID: 11400000, guid: c89b0802e7004944ba99d1ec7b46f609, type: 2}
-  cooldownSeconds: 1
-  fireRange: 12
+  cooldownSeconds: 0.35
+  fireRange: 25
   spawnOffset: 0.15
   shootSound: {fileID: 1912937518}
   shootTimer: 2
@@ -9177,32 +9194,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 0
   squadGroup: {fileID: 935909452}
+  archetype: {fileID: 11400000, guid: f81ea5f59c159374797dca31ee2e8c30, type: 2}
+  applyOnAwake: 1
+  applyInEditor: 1
   detectionRange: 12
   attackRange: 6
-  viewAngle: 160
+  viewAngle: 120
   moveSpeed: 3.5
   turnSpeed: 6
   stoppingDistance: 1.25
   turnDst: 5
-  patrolPoints:
-  - {fileID: 2029574754}
-  - {fileID: 90240889}
-  - {fileID: 1987278008}
-  waitAtPointSeconds: 1.5
-  currentPatrolIndex: 0
   targetMemorySeconds: 3
   lastSeenPos: {x: 0, y: 0, z: 0}
   lastSeenTime: 0
-  chaseMaxLostSightTime: 8
-  chaseExitDistanceExtra: 8
+  chaseMaxLostSightTime: 4
+  chaseExitDistanceExtra: 2
   chaseRepathInterval: 0.25
   chaseRequireLineOfSight: 1
   maxLostSightTime: 3
   exitAttackExtra: 0.5
+  combatObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  combatSkin: 0.05
+  strafeSpeedFactor: 0.6
+  strafeBlockedFramesToFlip: 6
   followRepathInterval: 0.35
   followAnchorMoveThreshold: 0.25
   followSeparationStrength: 0.6
   followSeparationRadius: 1.2
+  enableWander: 1
+  wanderCenter: {fileID: 0}
+  wanderRadius: 10
+  wanderWaitMin: 0.5
+  wanderWaitMax: 1.5
+  wanderRepathInterval: 0.75
+  wanderArriveTolerance: 0.35
+  wanderRetargetEvery: {x: 4, y: 7}
   currentStateName: (none)
   currentTarget: {fileID: 0}
   visionCollider: {fileID: 1478228257}
@@ -9212,6 +9240,12 @@ MonoBehaviour:
   shooter: {fileID: 1478228251}
   enemyAnimator: {fileID: 1478228247}
   runtimeAnchor: {fileID: 0}
+  patrolPoints:
+  - {fileID: 2029574754}
+  - {fileID: 90240889}
+  - {fileID: 1987278008}
+  waitAtPointSeconds: 1.5
+  currentPatrolIndex: 0
 --- !u!95 &1478228254
 Animator:
   serializedVersion: 7
@@ -9314,7 +9348,7 @@ Transform:
   m_GameObject: {fileID: 1478228246}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -2, y: 0.5, z: 17}
+  m_LocalPosition: {x: -2, y: 0.5, z: -18}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -16705,8 +16739,8 @@ MonoBehaviour:
   firePoint: {fileID: 77343208}
   bulletPool: {fileID: 2002411202}
   bulletSettings: {fileID: 11400000, guid: c89b0802e7004944ba99d1ec7b46f609, type: 2}
-  cooldownSeconds: 1
-  fireRange: 12
+  cooldownSeconds: 0.35
+  fireRange: 25
   spawnOffset: 0.15
   shootSound: {fileID: 1912937518}
   shootTimer: 2
@@ -16744,32 +16778,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   role: 1
   squadGroup: {fileID: 935909452}
+  archetype: {fileID: 11400000, guid: 4242af347953c804c9e1dea6fd44225c, type: 2}
+  applyOnAwake: 1
+  applyInEditor: 1
   detectionRange: 12
   attackRange: 6
-  viewAngle: 160
+  viewAngle: 120
   moveSpeed: 3.5
   turnSpeed: 6
   stoppingDistance: 1.25
   turnDst: 5
-  patrolPoints:
-  - {fileID: 2029574754}
-  - {fileID: 90240889}
-  - {fileID: 1987278008}
-  waitAtPointSeconds: 1.5
-  currentPatrolIndex: 0
   targetMemorySeconds: 3
   lastSeenPos: {x: 0, y: 0, z: 0}
   lastSeenTime: 0
-  chaseMaxLostSightTime: 8
-  chaseExitDistanceExtra: 8
+  chaseMaxLostSightTime: 4
+  chaseExitDistanceExtra: 2
   chaseRepathInterval: 0.25
-  chaseRequireLineOfSight: 1
+  chaseRequireLineOfSight: 0
   maxLostSightTime: 3
   exitAttackExtra: 0.5
+  combatObstacleMask:
+    serializedVersion: 2
+    m_Bits: 64
+  combatSkin: 0.05
+  strafeSpeedFactor: 0.6
+  strafeBlockedFramesToFlip: 6
   followRepathInterval: 0.35
   followAnchorMoveThreshold: 0.25
   followSeparationStrength: 0.6
   followSeparationRadius: 1.2
+  enableWander: 1
+  wanderCenter: {fileID: 0}
+  wanderRadius: 10
+  wanderWaitMin: 0.5
+  wanderWaitMax: 1.5
+  wanderRepathInterval: 0.75
+  wanderArriveTolerance: 1
+  wanderRetargetEvery: {x: 4, y: 7}
   currentStateName: (none)
   currentTarget: {fileID: 0}
   visionCollider: {fileID: 6691048395280462022}
@@ -16779,6 +16824,12 @@ MonoBehaviour:
   shooter: {fileID: 6691048395280462019}
   enemyAnimator: {fileID: 6691048395280462018}
   runtimeAnchor: {fileID: 0}
+  patrolPoints:
+  - {fileID: 2029574754}
+  - {fileID: 90240889}
+  - {fileID: 1987278008}
+  waitAtPointSeconds: 1.5
+  currentPatrolIndex: 0
 --- !u!135 &6691048395280462022
 SphereCollider:
   m_ObjectHideFlags: 0
