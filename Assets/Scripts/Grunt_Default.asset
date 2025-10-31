@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee74af88a98b0ab4ca643deafd197608, type: 3}
+  m_Name: Grunt_Default
+  m_EditorClassIdentifier: 
+  role: 0
+  detectionRange: 12
+  attackRange: 6
+  viewAngle: 120
+  moveSpeed: 3.5
+  turnSpeed: 6
+  stoppingDistance: 1.25
+  turnDst: 5
+  targetMemorySeconds: 3
+  chaseMaxLostSightTime: 4
+  chaseExitDistanceExtra: 2
+  chaseRepathInterval: 0.25
+  chaseRequireLineOfSight: 1
+  maxLostSightTime: 3
+  exitAttackExtra: 0.5
+  followRepathInterval: 0.35
+  followAnchorMoveThreshold: 0.25
+  followSeparationStrength: 0.6
+  followSeparationRadius: 1.2
+  fireRange: 25
+  cooldownSeconds: 0.35
+  spawnOffset: 0.15
