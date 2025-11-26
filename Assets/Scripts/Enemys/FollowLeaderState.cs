@@ -26,16 +26,13 @@ public class FollowLeaderState : IEnemyState {
         _repathTimer = 0f;
         _lastAnchor = Vector3.positiveInfinity;
 
-        // Slot estable por miembro
         _mySlotIndex = (_squad != null) ? _squad.GetOrAssignIndex(m) : 0;
 
-        // Toma parámetros desde el manager
         _repathInterval = Mathf.Max(0.2f, m.followRepathInterval);
         _anchorMoveThreshold = Mathf.Max(0.05f, m.followAnchorMoveThreshold);
         _sepStrength = Mathf.Max(0f, m.followSeparationStrength);
         _sepRadius = Mathf.Max(0f, m.followSeparationRadius);
 
-        // Primer follow inmediato
         Vector3 target = ComputeAnchor(m);
         Transform a = CreateOrGetAnchor(m, target);
         _unit?.StartFollowing(a);
@@ -43,6 +40,11 @@ public class FollowLeaderState : IEnemyState {
     }
 
     public void Update(EnemyManager m) {
+        // ? Si el EnemyManager ya no está activo o el Health está muerto, no hacer nada
+        if (!m.isActiveAndEnabled) return;
+        var h = m.GetComponent<Health>();
+        if (h != null && h.IsDead) return;
+
         // Si aparece target, transiciona a persecución o ataque
         if (m.currentTarget != null) {
             float dist = Vector3.Distance(m.transform.position, m.currentTarget.position);
@@ -74,7 +76,7 @@ public class FollowLeaderState : IEnemyState {
     }
 
     public void Exit(EnemyManager m) {
-        // No-op. Conservamos el anchor para posible retorno rápido al estado.
+        // No-op
     }
 
     // === Helpers ===
@@ -99,7 +101,6 @@ public class FollowLeaderState : IEnemyState {
             target += ComputeSeparationOffset(m, target) * _sepStrength;
         }
 
-        // Mantener plano con el líder
         if (_squad && _squad.leader) target.y = _squad.leader.position.y;
         return target;
     }
@@ -119,7 +120,7 @@ public class FollowLeaderState : IEnemyState {
             diff.y = 0f;
             float d = diff.magnitude;
             if (d > 0.001f) {
-                push += diff.normalized / d; // más empuje si está muy cerca
+                push += diff.normalized / d;
                 count++;
             }
         }
