@@ -25,6 +25,13 @@ public class Health : MonoBehaviour {
     [Min(0f)] public float regenDelay = 3f;
     [Min(0f)] public float regenRate = 5f;
 
+    [Header("Comportamiento al morir")]
+    [Tooltip("Si está activado, el objeto se desactiva automáticamente al morir.")]
+    public bool deactivateOnDeath = true;
+
+    [Tooltip("Retraso antes de desactivar el objeto (segundos).")]
+    [Min(0f)] public float deathDeactivateDelay = 1.0f;
+
     [Header("Eventos (UnityEvents)")]
     public UnityEvent onDamaged;
     public UnityEvent onHealed;
@@ -44,7 +51,6 @@ public class Health : MonoBehaviour {
         isDead = CurrentHealth <= 0f;
         _invulnTimer = 0f;
         _sinceLastDamage = 0f;
-        // Notifica estado inicial (útil para dibujar barra llena)
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
 
@@ -52,6 +58,7 @@ public class Health : MonoBehaviour {
         if (_invulnTimer > 0f) _invulnTimer -= Time.deltaTime;
         if (!isDead) _sinceLastDamage += Time.deltaTime;
 
+        // Auto-regeneración
         if (autoRegen && !isDead && _sinceLastDamage >= regenDelay && CurrentHealth < maxHealth) {
             float before = CurrentHealth;
             CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + regenRate * Time.deltaTime);
@@ -63,8 +70,7 @@ public class Health : MonoBehaviour {
     }
 
     public void ApplyDamage(DamageInfo info) {
-        if (isDead) return;
-        if (_invulnTimer > 0f) return;
+        if (isDead || _invulnTimer > 0f) return;
 
         float before = CurrentHealth;
         CurrentHealth = Mathf.Max(0f, CurrentHealth - Mathf.Max(0f, info.amount));
@@ -76,9 +82,7 @@ public class Health : MonoBehaviour {
             OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         }
 
-        if (CurrentHealth <= 0f) {
-            Die(info);
-        }
+        if (CurrentHealth <= 0f) Die(info);
     }
 
     public void Heal(float amount) {
@@ -98,11 +102,18 @@ public class Health : MonoBehaviour {
     }
 
     void Die(DamageInfo cause) {
+        if (isDead) return;
         isDead = true;
         onDied?.Invoke();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+
+        if (deactivateOnDeath)
+            Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
     }
 
-   
+    void DeactivateSelf() {
+        gameObject.SetActive(false);
+    }
+
     public float GetHealth01() => (maxHealth > 0f) ? (CurrentHealth / maxHealth) : 0f;
 }

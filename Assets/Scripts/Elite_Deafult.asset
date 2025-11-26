@@ -15,7 +15,7 @@ MonoBehaviour:
   role: 1
   detectionRange: 12
   attackRange: 6
-  viewAngle: 120
+  viewAngle: 160
   moveSpeed: 3.5
   turnSpeed: 6
   stoppingDistance: 1.25
