@@ -18,7 +18,7 @@ MonoBehaviour:
   viewAngle: 160
   moveSpeed: 3.5
   turnSpeed: 6
-  stoppingDistance: 1.25
+  stoppingDistance: 1.8
   turnDst: 5
   targetMemorySeconds: 3
   chaseMaxLostSightTime: 4

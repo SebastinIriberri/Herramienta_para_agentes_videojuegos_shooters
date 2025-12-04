@@ -2,7 +2,6 @@
 using UnityEngine;
 
 public class Unit : MonoBehaviour {
-    // === Parámetros de actualización de path ===
     const float minPathUpdateTime = .2f;
 
     [Header("Repath (anti-spam)")]
@@ -15,8 +14,7 @@ public class Unit : MonoBehaviour {
     [Tooltip("Si nosotros no avanzamos nada en este tiempo, forzar repath.")]
     public float stuckRepathSeconds = 1.5f;
 
-    // === Movimiento ===
-    public Transform target;             
+    public Transform target;
     public float speed = 3.5f;
     public float turnSpeed = 6f;
     public float turnDst = 5f;
@@ -27,28 +25,27 @@ public class Unit : MonoBehaviour {
     public float CurrentSpeed { get; private set; }
     public bool HasReachedDestination { get; private set; }
 
-    // Estado interno anti-spam
     Transform _followTarget;
     Vector3 _lastTargetPos;
     float _lastRepathTime;
 
-    // Para detectar atascos locales
     Vector3 _lastPos;
     float _stuckTimer;
 
-    // Handle de la corrutina principal de follow (para cortar con seguridad)
     Coroutine _followRoutine;
     Coroutine _updatePathRoutine;
 
     public void ConfigureMovement(float spd, float turnSpd, float stopDst, float turnDistance) {
-        speed = spd; turnSpeed = turnSpd; stoppingDst = stopDst; turnDst = turnDistance;
+        speed = spd;
+        turnSpeed = turnSpd;
+        stoppingDst = stopDst;
+        turnDst = turnDistance;
     }
 
     public void OnPathFound(Vector3[] waypoints, bool pathSuccessful) {
         if (!pathSuccessful || waypoints == null || waypoints.Length == 0) return;
         path = new Path(waypoints, transform.position, turnDst, stoppingDst);
 
-        //  Solo arrancar si el componente/GO siguen activos
         if (!isActiveAndEnabled || !gameObject.activeInHierarchy) return;
 
         if (_followRoutine != null) StopCoroutine(_followRoutine);
@@ -56,13 +53,10 @@ public class Unit : MonoBehaviour {
     }
 
     IEnumerator UpdatePath() {
-        // Salir si nos desactivan en cualquier momento
         if (!isActiveAndEnabled || !gameObject.activeInHierarchy) yield break;
 
-        // pequeño delay al cargar escena
         if (Time.timeSinceLevelLoad < .3f) yield return new WaitForSeconds(.3f);
 
-        // primer cálculo
         RequestRepath();
 
         float sqrMoveThreshold = targetMoveThreshold * targetMoveThreshold;
@@ -73,7 +67,6 @@ public class Unit : MonoBehaviour {
 
             if (!_followTarget) continue;
 
-            // Si el target se movió lo suficiente, pide nueva ruta (respetando cooldown)
             if ((_followTarget.position - targetPosOld).sqrMagnitude > sqrMoveThreshold) {
                 TryRepath();
                 targetPosOld = _followTarget.position;
@@ -89,23 +82,19 @@ public class Unit : MonoBehaviour {
     }
 
     void TryRepath() {
-        // Enfriamiento
         if (Time.time - _lastRepathTime < repathCooldown) return;
-        // Si el target apenas varió, omite
         if ((_followTarget.position - _lastTargetPos).sqrMagnitude < targetMoveThreshold * targetMoveThreshold) return;
 
         RequestRepath();
     }
 
     IEnumerator FollowPath() {
-        //  Salir si nos desactivan en cualquier momento
         if (!isActiveAndEnabled || !gameObject.activeInHierarchy) yield break;
 
         bool followingPath = true;
         int pathIndex = 0;
         float speedPercent = 1f;
 
-        // orientación inicial (solo Y)
         Vector3 firstDir = path.lookPoints[0] - transform.position;
         firstDir.y = 0f;
         if (firstDir.sqrMagnitude > 0.0001f)
@@ -125,18 +114,19 @@ public class Unit : MonoBehaviour {
             if (followingPath) {
                 HasReachedDestination = false;
 
-                // slowdown suave
                 if (pathIndex >= path.slowDownIndex && stoppingDst > 0f) {
-                    speedPercent = Mathf.Clamp01(path.turnBoundaries[path.finishLineIndex].DistanceFromPoint(pos2D) / stoppingDst);
+                    float distToFinish = path.turnBoundaries[path.finishLineIndex].DistanceFromPoint(pos2D);
+                    speedPercent = Mathf.Clamp01(distToFinish / stoppingDst);
+
                     if (speedPercent < 0.1f ||
                         Vector3.Distance(transform.position, path.lookPoints[path.finishLineIndex]) <= stoppingDst) {
-                        followingPath = false;
                         HasReachedDestination = true;
+                        CurrentSpeed = 0f;
                         OnDestinationReached?.Invoke();
+                        yield break;
                     }
                 }
 
-                // rotación suave (solo Y)
                 Vector3 direction = path.lookPoints[pathIndex] - transform.position;
                 direction.y = 0f;
                 if (direction.sqrMagnitude > 0.01f) {
@@ -145,11 +135,9 @@ public class Unit : MonoBehaviour {
                     transform.rotation = Quaternion.Euler(0f, yRot, 0f);
                 }
 
-                // avance
                 transform.Translate(Vector3.forward * Time.deltaTime * speed * speedPercent, Space.Self);
                 CurrentSpeed = speed * speedPercent;
 
-                // anti-atasco → si no avanzamos, fuerza repath (respetando cooldown)
                 float moved = Vector3.Distance(transform.position, _lastPos);
                 if (moved < 0.02f) _stuckTimer += Time.deltaTime;
                 else _stuckTimer = 0f;
@@ -164,30 +152,25 @@ public class Unit : MonoBehaviour {
             else {
                 HasReachedDestination = true;
                 CurrentSpeed = 0f;
+                yield break;
             }
 
             yield return null;
         }
     }
 
-    // === API pública, con anti-spam ===
     public void StartFollowing(Transform newTarget) {
         if (!newTarget) return;
-
-        //  No arranques corrutinas si el componente/GO no está activo
         if (!isActiveAndEnabled || !gameObject.activeInHierarchy) return;
 
-        //  (Opcional) si hay Health y está muerto, no seguir
         var h = GetComponent<Health>();
         if (h != null && h.IsDead) return;
 
-        // Si es el mismo target y estamos dentro del cooldown, ignora
         if (_followTarget == newTarget && Time.time - _lastRepathTime < repathCooldown) return;
 
         _followTarget = newTarget;
         HasReachedDestination = false;
 
-        // reinicia cualquier ciclo anterior de path/follow
         if (_updatePathRoutine != null) StopCoroutine(_updatePathRoutine);
         if (_followRoutine != null) StopCoroutine(_followRoutine);
         _updatePathRoutine = StartCoroutine(UpdatePath());
@@ -203,6 +186,18 @@ public class Unit : MonoBehaviour {
     }
 
     public void OnDrawGizmos() {
-        if (path != null) path.DrawWithGizmos();
+        if (path != null) {
+            var em = GetComponent<EnemyManager>();
+            if (em != null) {
+                path.DrawWithGizmos(
+                    em.debugDrawPath,
+                    em.debugDrawTurnLines,
+                    em.debugDrawLookPoints,
+                    em.debugColorPath,
+                    em.debugColorTurnLines,
+                    em.debugColorLookPoints
+                );
+            }
+        }
     }
 }
