@@ -1,169 +1,98 @@
 using UnityEngine;
-/// <summary>
-/// Orquesta el ciclo de vida del enemigo con una FSM (patrulla / persecución / ataque / seguir líder / vagar).
-/// - Expone parámetros legibles en el Inspector (con tooltips).
-/// - Inyecta arquetipo (opcional) para setear valores por tipo (Grunt/Elite).
-/// - Selecciona estado inicial según rol y disponibilidad de patrulla/squad.
-/// </summary>
-public enum EnemyRole { Grunt, Elite }
-[RequireComponent(typeof(SphereCollider))]
-public  class EnemyManager : MonoBehaviour {
-    // ===========================
-    //           Rol / Squad
-    // ===========================
-    [Header("Rol / Escuadra")]
-    [Tooltip("Grunt = seguidor (si tiene squad), Elite = líder (suele patrullar o vagar).")]
-    public EnemyRole role = EnemyRole.Grunt;
 
-    [Tooltip("Grupo/escuadra al que pertenece (para slotting y seguir líder).")]
+public enum EnemyRole { Grunt, Elite }
+
+[RequireComponent(typeof(SphereCollider))]
+public class EnemyManager : MonoBehaviour {
+    [Header("Rol / Escuadra")]
+    public EnemyRole role = EnemyRole.Grunt;
     public SquadGroup squadGroup;
 
-    // ===========================
-    //       Arquetipo (SO)
-    // ===========================
     [Header("Arquetipo (SO Opcional)")]
-    [Tooltip("ScriptableObject con parámetros por tipo de enemigo.")]
     public EnemyArchetype archetype;
-
-    [Tooltip("Aplica el arquetipo automáticamente en Awake.")]
     public bool applyOnAwake = true;
-
-    [Tooltip("Aplica el arquetipo en OnValidate para ver cambios en editor.")]
     public bool applyInEditor = true;
 
-    // ===========================
-    //       Visión y Rangos
-    // ===========================
     [Header("Visión y Rangos")]
-    [Tooltip("Radio (m) para detectar al jugador y pasar a persecución.")]
     public float detectionRange = 12f;
-
-    [Tooltip("Radio (m) para considerar ataque/disparo.")]
     public float attackRange = 6f;
-
-    [Tooltip("Ángulo de visión (grados).")]
     [Range(0, 360)] public float viewAngle = 120f;
 
-    // ===========================
-    //          Movimiento
-    // ===========================
     [Header("Movimiento")]
-    [Tooltip("Velocidad de desplazamiento (m/s).")]
     public float moveSpeed = 3.5f;
-
-    [Tooltip("Velocidad de giro (interpolación).")]
     public float turnSpeed = 6f;
-
-    [Tooltip("Distancia de llegada suave al destino.")]
     public float stoppingDistance = 1.25f;
-
-    [Tooltip("Adelantamiento para suavizar giros del path (lo usa Unit).")]
     public float turnDst = 5f;
 
-    // ===========================
-    //        Memoria Visual
-    // ===========================
     [Header("Memoria visual")]
-    [Tooltip("Segundos recordando la última posición vista del jugador.")]
     public float targetMemorySeconds = 3f;
-
     [HideInInspector] public Vector3 lastSeenPos;
     [HideInInspector] public float lastSeenTime;
 
-    // ===========================
-    //            Chase
-    // ===========================
     [Header("Persecución (Chase)")]
-    [Tooltip("Segundos sin ver al jugador para abandonar Chase.")]
     public float chaseMaxLostSightTime = 4f;
-
-    [Tooltip("Margen extra sobre detectionRange para abandonar Chase si se aleja demasiado.")]
     public float chaseExitDistanceExtra = 2f;
-
-    [Tooltip("Intervalo de re-cálculo de ruta en Chase (anti-spam).")]
     public float chaseRepathInterval = 0.25f;
-
-    [Tooltip("Si es true, además del FOV exige línea de visión para considerarlo visible.")]
     public bool chaseRequireLineOfSight = false;
 
-    // ===========================
-    //            Attack
-    // ===========================
     [Header("Ataque (Attack)")]
-    [Tooltip("Segundos sin ver al objetivo para salir de Attack.")]
     public float maxLostSightTime = 3f;
-
-    [Tooltip("Margen adicional de distancia para abandonar Attack.")]
     public float exitAttackExtra = 0.5f;
-    
+
     [Header("Combate: colisiones y strafe")]
-    [Tooltip("Capas consideradas como obstáculos para el strafe/correcciones.")]
     public LayerMask combatObstacleMask = ~0;
-
-    [Tooltip("Margen para cápsula al probar colisión (skin).")]
     public float combatSkin = 0.05f;
-
-    [Tooltip("Cuánto avanza lateralmente el strafe (m/s) relativo a moveSpeed.")]
     public float strafeSpeedFactor = 0.6f;
-
-    [Tooltip("Si se bloquea N frames seguidos, invierte dirección de strafe.")]
     public int strafeBlockedFramesToFlip = 6;
 
-    // ===========================
-    //           Follow (Grunt)
-    // ===========================
     [Header("Follow (solo Grunt)")]
-    [Tooltip("Intervalo para reordenar el follow hacia el slot (anti-spam).")]
     public float followRepathInterval = 0.35f;
-
-    [Tooltip("Umbral (m) de movimiento del anchor para volver a ordenar.")]
     public float followAnchorMoveThreshold = 0.25f;
-
-    [Tooltip("Fuerza de separación local entre compañeros (0 = off).")]
     public float followSeparationStrength = 0.6f;
-
-    [Tooltip("Radio (m) para calcular separación local.")]
     public float followSeparationRadius = 1.2f;
 
-    // ===========================
-    //             Wander
-    // ===========================
     [Header("Vagar (Wander)")]
-    [Tooltip("Si no hay puntos de patrulla, puede deambular por la zona.")]
     public bool enableWander = true;
-
-    [Tooltip("Centro de wander (si está vacío, usa la posición inicial).")]
     public Transform wanderCenter;
-
-    [Tooltip("Radio en el que deambula alrededor del centro.")]
     public float wanderRadius = 10f;
-
-    [Tooltip("Tiempo mínimo esperando al llegar a un punto.")]
     public float wanderWaitMin = 0.5f;
-
-    [Tooltip("Tiempo máximo esperando al llegar a un punto.")]
     public float wanderWaitMax = 1.5f;
-
-    [Tooltip("Intervalo mínimo entre órdenes de movimiento (anti-spam).")]
     public float wanderRepathInterval = 0.75f;
-    // NUEVO: tolerancia de llegada y retarget programado
-    [Tooltip("Distancia a la meta para considerarse 'llegado' (evita jitter).")]
     public float wanderArriveTolerance = 0.35f;
-
-    [Tooltip("Cada cuántos segundos, forzar elegir otro punto aunque no haya llegado (min..max).")]
     public Vector2 wanderRetargetEvery = new Vector2(4f, 7f);
 
-    // ===========================
-    //             Debug
-    // ===========================
+    [Header("Oído (Hearing)")]
+    public bool enableHearing = true;
+    public float hearingRange = 18f;
+    public float hearingCooldownSeconds = 3f;
+    public float investigateWaitSeconds = 2f;
+    [HideInInspector] public Vector3 lastHeardNoisePos;
+    [HideInInspector] public float lastHeardNoiseTime;
+
     [Header("Debug")]
-    [SerializeField] private string currentStateName = "(none)";
-    [Tooltip("Blanco actual detectado (el Player).")]
+    [SerializeField] string currentStateName = "(none)";
     public Transform currentTarget;
 
-    // ===========================
-    //          Dependencias
-    // ===========================
+    public bool debugDrawDetectionRange = true;
+    public bool debugDrawAttackRange = true;
+    public bool debugDrawViewCone = true;
+    public bool debugDrawRuntimeAnchor = true;
+    public bool debugDrawWanderArea = true;
+    public bool debugDrawPath = true;
+    public bool debugDrawTurnLines = true;
+    public bool debugDrawLookPoints = false;
+    public bool debugDrawHearingRange = true;
+
+    public Color debugColorDetection = Color.yellow;
+    public Color debugColorAttack = Color.cyan;
+    public Color debugColorViewCone = Color.red;
+    public Color debugColorRuntimeAnchor = Color.magenta;
+    public Color debugColorWander = new Color(0f, 1f, 0.3f, 0.25f);
+    public Color debugColorPath = Color.cyan;
+    public Color debugColorTurnLines = Color.magenta;
+    public Color debugColorLookPoints = Color.green;
+    public Color debugColorHearing = new Color(1f, 0.5f, 0f, 0.5f);
+
     [Header("Dependencias (auto)")]
     public SphereCollider visionCollider;
     public CapsuleCollider bodyCollider;
@@ -172,28 +101,21 @@ public  class EnemyManager : MonoBehaviour {
     public EnemyShooter shooter;
     public EnemyAnimator enemyAnimator;
 
-    // Anchor utilitario para seguir posiciones (memoria/slots/wander)
     [HideInInspector] public Transform runtimeAnchor;
-    // === NUEVO: cache de Health para cortar IA al morir ===
-    private Health _health;
-    // ===========================
-    //              FSM
-    // ===========================
-    private IEnemyState currentState;
-    private readonly PatrolState patrolState = new PatrolState();
-    private readonly ChaseState chaseState = new ChaseState();
-    private readonly AttackState attackState = new AttackState();
-    private readonly FollowLeaderState followLeaderState = new FollowLeaderState();
-    private readonly WanderState wanderState = new WanderState();
 
-    // Posición inicial (fallback para wander)
-    private Vector3 _spawnPos;
+    Health _health;
 
-    // ===========================
-    //       Ciclo de vida
-    // ===========================
+    IEnemyState currentState;
+    readonly PatrolState patrolState = new PatrolState();
+    readonly ChaseState chaseState = new ChaseState();
+    readonly AttackState attackState = new AttackState();
+    readonly FollowLeaderState followLeaderState = new FollowLeaderState();
+    readonly WanderState wanderState = new WanderState();
+    readonly InvestigateNoiseState investigateNoiseState = new InvestigateNoiseState();
+
+    Vector3 _spawnPos;
+
     void OnValidate() {
-        // Auto-asignaciones básicas
         if (!visionCollider) visionCollider = GetComponent<SphereCollider>();
         if (!visionCollider) visionCollider = gameObject.AddComponent<SphereCollider>();
         visionCollider.isTrigger = true;
@@ -205,7 +127,7 @@ public  class EnemyManager : MonoBehaviour {
         if (!rb) {
             rb = gameObject.AddComponent<Rigidbody>();
             rb.useGravity = true;
-            rb.isKinematic = true; // movimiento por código
+            rb.isKinematic = true;
             rb.constraints = RigidbodyConstraints.FreezeRotationX |
                              RigidbodyConstraints.FreezeRotationZ |
                              RigidbodyConstraints.FreezePositionY;
@@ -225,19 +147,18 @@ public  class EnemyManager : MonoBehaviour {
         unit?.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
         _health = GetComponent<Health>();
     }
+
     void OnEnable() {
         if (_health) _health.onDied.AddListener(OnDiedHandler);
+        NoiseSystem.OnNoiseEmitted += HandleNoise;
     }
 
     void OnDisable() {
         if (_health) _health.onDied.RemoveListener(OnDiedHandler);
+        NoiseSystem.OnNoiseEmitted -= HandleNoise;
     }
+
     void Start() {
-        // Estado inicial claro y predecible:
-        // 1) Grunt con squad ? FollowLeader
-        // 2) Si tiene patrulla ? Patrol
-        // 3) Si se permite wander ? Wander
-        // 4) Fallback ? Patrol (sin puntos solo se queda "quieto" hasta detectar)
         if (role == EnemyRole.Grunt && squadGroup != null) {
             TransitionTo(followLeaderState);
         }
@@ -256,32 +177,26 @@ public  class EnemyManager : MonoBehaviour {
         currentState?.Update(this);
     }
 
-    // ===========================
-    //          Transiciones
-    // ===========================
     public void TransitionTo(IEnemyState s) {
         if (currentState == s) return;
         currentState?.Exit(this);
         currentState = s;
-        // Evita NRE si ya te desactivaron desde OnDiedHandler
         currentStateName = currentState != null ? currentState.GetType().Name : "(none)";
         currentState?.Enter(this);
     }
+
     void OnDiedHandler() {
-        // Corta FSM y deja de emitir órdenes
         currentState?.Exit(this);
         currentState = null;
 
-        // Detén pathing
         unit?.StopFollowing();
 
-        // Desactiva lógicas auxiliares
         if (shooter) shooter.enabled = false;
         if (enemyAnimator) enemyAnimator.enabled = false;
 
-        // Este componente deja de hacer Update
         enabled = false;
     }
+
     public void GoToPatrol() {
         if (role == EnemyRole.Grunt && squadGroup != null) TransitionTo(followLeaderState);
         else if (HasPatrol()) TransitionTo(patrolState);
@@ -292,19 +207,29 @@ public  class EnemyManager : MonoBehaviour {
     public void GoToChase() => TransitionTo(chaseState);
     public void GoToAttack() => TransitionTo(attackState);
     public void GoToWander() => TransitionTo(wanderState);
+    public void GoToInvestigateNoise() => TransitionTo(investigateNoiseState);
 
-    // ===========================
-    //            Visión
-    // ===========================
     void OnTriggerEnter(Collider other) {
         if (!other.CompareTag("Player")) return;
-        if (IsInFOV(other.transform)) currentTarget = other.transform;
+        if (IsInFOV(other.transform)) {
+            currentTarget = other.transform;
+            lastSeenPos = other.transform.position;
+            lastSeenTime = Time.time;
+            if (squadGroup != null) squadGroup.ReportPlayerSeen(lastSeenPos);
+        }
     }
 
     void OnTriggerStay(Collider other) {
         if (!other.CompareTag("Player")) return;
-        if (IsInFOV(other.transform)) currentTarget = other.transform;
-        else if (currentTarget == other.transform) currentTarget = null;
+        if (IsInFOV(other.transform)) {
+            currentTarget = other.transform;
+            lastSeenPos = other.transform.position;
+            lastSeenTime = Time.time;
+            if (squadGroup != null) squadGroup.ReportPlayerSeen(lastSeenPos);
+        }
+        else if (currentTarget == other.transform) {
+            currentTarget = null;
+        }
     }
 
     void OnTriggerExit(Collider other) {
@@ -330,18 +255,13 @@ public  class EnemyManager : MonoBehaviour {
         return false;
     }
 
-    // ===========================
-    //           Helpers
-    // ===========================
     public bool HasPatrol() => patrolPoints != null && patrolPoints.Length > 0;
 
-    /// <summary>Devuelve un punto centro para Wander (transform asignado o spawn inicial).</summary>
     public Vector3 GetWanderCenter() {
         if (wanderCenter) return wanderCenter.position;
         return _spawnPos;
     }
 
-    /// <summary>Permite a estados mover al enemigo a un punto Vector3 reutilizando un anchor.</summary>
     public Transform FollowPoint(Vector3 worldPos) {
         if (!runtimeAnchor) {
             var go = new GameObject($"{name}_Anchor");
@@ -353,7 +273,6 @@ public  class EnemyManager : MonoBehaviour {
         return runtimeAnchor;
     }
 
-    /// <summary>Aplica un arquetipo (SO) a los campos del manager y del shooter.</summary>
     public void ApplyArchetype(EnemyArchetype src = null) {
         var a = src ? src : archetype;
         if (!a) return;
@@ -383,10 +302,9 @@ public  class EnemyManager : MonoBehaviour {
         followSeparationStrength = a.followSeparationStrength;
         followSeparationRadius = a.followSeparationRadius;
 
-        // Disparo (ShooterBase/EnemyShooter)
         if (shooter) {
             shooter.fireRange = a.fireRange;
-            shooter.cooldownSeconds = a.cooldownSeconds; // asegúrate de tener este campo público
+            shooter.cooldownSeconds = a.cooldownSeconds;
             shooter.spawnOffset = a.spawnOffset;
         }
 
@@ -394,57 +312,79 @@ public  class EnemyManager : MonoBehaviour {
         if (unit) unit.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
     }
 
-    // ===========================
-    //           Patrulla
-    // ===========================
-    [Header("Patrullaje (solo Elite o fallback)")]
     public Transform[] patrolPoints;
     public float waitAtPointSeconds = 1.5f;
     [HideInInspector] public int currentPatrolIndex = 0;
 
-    // ===========================
-    //            Gizmos
-    // ===========================
+    void HandleNoise(NoiseInfo info) {
+        if (!enableHearing) return;
+        if (!enabled || !gameObject.activeInHierarchy) return;
+        if (_health != null && _health.IsDead) return;
+
+        float maxRange = Mathf.Min(hearingRange, info.radius > 0f ? info.radius : hearingRange);
+        float sqrRange = maxRange * maxRange;
+        float sqrDist = (info.position - transform.position).sqrMagnitude;
+        if (sqrDist > sqrRange) return;
+
+        if (Time.time - lastHeardNoiseTime < hearingCooldownSeconds) return;
+
+        if (currentTarget != null && (currentState == chaseState || currentState == attackState))
+            return;
+
+        lastHeardNoisePos = info.position;
+        lastHeardNoiseTime = Time.time;
+
+        if (squadGroup != null) squadGroup.ReportNoise(info.position);
+
+        TransitionTo(investigateNoiseState);
+    }
+
     void OnDrawGizmosSelected() {
-        Gizmos.color = Color.yellow; Gizmos.DrawWireSphere(transform.position, detectionRange);
-        Gizmos.color = Color.blue; Gizmos.DrawWireSphere(transform.position, attackRange);
+        if (debugDrawDetectionRange) {
+            Gizmos.color = debugColorDetection;
+            Gizmos.DrawWireSphere(transform.position, detectionRange);
+        }
 
-        Gizmos.color = Color.red;
-        Vector3 fwd = transform.forward;
-        Vector3 left = Quaternion.Euler(0, -viewAngle / 2f, 0) * fwd;
-        Vector3 right = Quaternion.Euler(0, viewAngle / 2f, 0) * fwd;
-        Vector3 origin = transform.position + Vector3.up * 1.5f;
-        Gizmos.DrawLine(origin, origin + left * detectionRange);
-        Gizmos.DrawLine(origin, origin + right * detectionRange);
+        if (debugDrawAttackRange) {
+            Gizmos.color = debugColorAttack;
+            Gizmos.DrawWireSphere(transform.position, attackRange);
+        }
 
-        if (runtimeAnchor) {
-            Gizmos.color = Color.cyan;
+        if (debugDrawViewCone) {
+            Gizmos.color = debugColorViewCone;
+            Vector3 fwd = transform.forward;
+            Vector3 left = Quaternion.Euler(0, -viewAngle / 2f, 0) * fwd;
+            Vector3 right = Quaternion.Euler(0, viewAngle / 2f, 0) * fwd;
+            Vector3 origin = transform.position + Vector3.up * 1.5f;
+            Gizmos.DrawLine(origin, origin + left * detectionRange);
+            Gizmos.DrawLine(origin, origin + right * detectionRange);
+        }
+
+        if (debugDrawRuntimeAnchor && runtimeAnchor) {
+            Gizmos.color = debugColorRuntimeAnchor;
             Gizmos.DrawSphere(runtimeAnchor.position, 0.1f);
         }
 
-        // Wander debug
-        if (enableWander) {
-            Gizmos.color = new Color(0f, 1f, 0.3f, 0.25f);
+        if (debugDrawWanderArea && enableWander) {
+            Gizmos.color = debugColorWander;
             Gizmos.DrawWireSphere(GetWanderCenter(), Mathf.Max(0.1f, wanderRadius));
+        }
+
+        if (debugDrawHearingRange && enableHearing) {
+            Gizmos.color = debugColorHearing;
+            Gizmos.DrawWireSphere(transform.position, hearingRange);
         }
     }
 
 #if UNITY_EDITOR
-    /// <summary>
-    /// Versión “segura para editor” de la configuración que normalmente hace OnValidate.
-    /// Llamable desde ventanas/editor para dejar el prefab/instancia listo.
-    /// </summary>
     public void ForceValidateForDesigner() {
-        // Asegurar visionCollider
         if (!visionCollider) visionCollider = GetComponent<SphereCollider>();
         if (!visionCollider) visionCollider = gameObject.AddComponent<SphereCollider>();
         visionCollider.isTrigger = true;
         visionCollider.radius = detectionRange;
 
-        // Asegurar bodyCollider
         if (!bodyCollider) bodyCollider = GetComponent<CapsuleCollider>();
 
-        // Asegurar rigidbody configurado para movimiento por código
         if (!rb) rb = GetComponent<Rigidbody>();
         if (!rb) {
             rb = gameObject.AddComponent<Rigidbody>();
@@ -455,20 +395,13 @@ public  class EnemyManager : MonoBehaviour {
                              RigidbodyConstraints.FreezePositionY;
         }
 
-        // Asegurar dependencias de IA
         if (!unit) unit = GetComponent<Unit>();
         if (!shooter) shooter = GetComponent<EnemyShooter>();
         if (!enemyAnimator) enemyAnimator = GetComponent<EnemyAnimator>();
 
-        // Reaplicar arquetipo si existe (mantiene coherencia)
         if (archetype) ApplyArchetype();
 
-        // Reconfigurar movimiento
         unit?.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
-
-        // Sin tocar FSM/estados; solo “setup” de componentes/datos.
     }
 #endif
-
 }
-

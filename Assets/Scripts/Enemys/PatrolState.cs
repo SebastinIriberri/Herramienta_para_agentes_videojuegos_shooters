@@ -2,8 +2,8 @@ using UnityEngine;
 using System.Collections;
 
 public class PatrolState : IEnemyState {
-    private bool isWaiting;
-    private EnemyManager cached;
+    bool isWaiting;
+    EnemyManager cached;
 
     public void Enter(EnemyManager m) {
         cached = m;
@@ -16,15 +16,30 @@ public class PatrolState : IEnemyState {
     }
 
     public void Update(EnemyManager m) {
-        // Si hay target en FOV/trigger => CHASE
         if (m.currentTarget != null) {
+            if (m.squadGroup != null) m.squadGroup.ReportPlayerSeen(m.currentTarget.position);
+            m.lastSeenPos = m.currentTarget.position;
+            m.lastSeenTime = Time.time;
             m.GoToChase();
             return;
+        }
+
+        if (m.squadGroup != null && m.squadGroup.enableBlackboard) {
+            Vector3 sharedPos;
+            if (m.squadGroup.TryGetRecentPlayerSeen(out sharedPos)) {
+                if (Time.time - m.lastSeenTime > m.targetMemorySeconds) {
+                    m.lastSeenPos = sharedPos;
+                    m.lastSeenTime = Time.time;
+                    m.GoToChase();
+                    return;
+                }
+            }
         }
 
         if (m.unit == null || m.patrolPoints.Length == 0) return;
 
         if (m.unit.HasReachedDestination && !isWaiting) {
+            m.unit.StopFollowing();
             m.StartCoroutine(WaitThenNextPoint());
         }
     }
@@ -34,9 +49,15 @@ public class PatrolState : IEnemyState {
         m.unit?.StopFollowing();
     }
 
-    private IEnumerator WaitThenNextPoint() {
+    IEnumerator WaitThenNextPoint() {
         isWaiting = true;
         yield return new WaitForSeconds(cached.waitAtPointSeconds);
+
+        if (cached == null || cached.unit == null || cached.patrolPoints.Length == 0) {
+            isWaiting = false;
+            yield break;
+        }
+
         cached.currentPatrolIndex = (cached.currentPatrolIndex + 1) % cached.patrolPoints.Length;
         cached.unit.StartFollowing(cached.patrolPoints[cached.currentPatrolIndex]);
         isWaiting = false;

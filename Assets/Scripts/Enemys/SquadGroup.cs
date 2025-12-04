@@ -1,40 +1,36 @@
 using System.Collections.Generic;
 using UnityEngine;
-/// <summary>
-/// Gestiona una escuadra: líder + miembros con slots alrededor del líder.
-/// No hace Update; solo provee cálculos de "slot position" bajo demanda.
-/// </summary>
+
 public class SquadGroup : MonoBehaviour {
     [Header("Referencias")]
-    [Tooltip("Transform del líder (normalmente un Elite). Si está vacío, usa este GameObject.")]
     public Transform leader;
 
     [Header("Anillos / Slots")]
-    [Tooltip("Radio del primer anillo alrededor del líder.")]
-    public float ringRadius = 2.5f;
-
-    [Tooltip("Número de slots en el primer anillo.")]
-    public int slotsFirstRing = 6;
-
-    [Tooltip("Aumento de radio por cada anillo adicional.")]
-    public float ringRadiusStep = 1.5f;
-
-    [Tooltip("Número de slots en anillos extra (0 = usar el del primer anillo).")]
+    public float ringRadius = 3.5f;
+    public int slotsFirstRing = 4;
+    public float ringRadiusStep = 2.5f;
     public int extraSlotsPerRing = 0;
 
     [Header("Orientación")]
-    [Tooltip("Si true, los slots se orientan respecto al forward del líder; si false, al norte mundial.")]
     public bool alignToLeaderForward = true;
 
-    // Registro simple: enemigo -> índice de slot
-    private readonly Dictionary<EnemyManager, int> _indexByMember = new();
-    private readonly List<EnemyManager> _roster = new();
+    [Header("Blackboard (por escuadra)")]
+    public bool enableBlackboard = true;
+    public float sharedMemorySeconds = 4f;
+
+    public Vector3 lastPlayerSeenPos;
+    public float lastPlayerSeenTime = -999f;
+
+    public Vector3 lastNoisePos;
+    public float lastNoiseTime = -999f;
+
+    readonly Dictionary<EnemyManager, int> _indexByMember = new();
+    readonly List<EnemyManager> _roster = new();
 
     void Awake() {
         if (!leader) leader = transform;
     }
 
-    /// <summary>Registra un miembro y devuelve su índice de slot asignado (idempotente).</summary>
     public int Register(EnemyManager m) {
         if (!m) return -1;
         if (!_indexByMember.ContainsKey(m)) {
@@ -44,19 +40,15 @@ public class SquadGroup : MonoBehaviour {
         return _indexByMember[m];
     }
 
-    /// <summary>Desregistra a un miembro (opcional, útil si muere/desaparece).</summary>
     public void Unregister(EnemyManager m) {
         if (!m) return;
         if (_indexByMember.Remove(m)) {
             _roster.Remove(m);
-            // Nota: no recompactamos índices para mantener estabilidad en runtime.
         }
     }
 
-    /// <summary>Atajo: obtiene (o asigna) un índice de slot para el miembro.</summary>
     public int GetOrAssignIndex(EnemyManager m) => Register(m);
 
-    /// <summary>Devuelve la posición destino para un índice de slot.</summary>
     public Vector3 GetSlotPosition(int slotIndex) {
         if (!leader) leader = transform;
         if (slotIndex < 0) slotIndex = 0;
@@ -87,11 +79,36 @@ public class SquadGroup : MonoBehaviour {
         return pos;
     }
 
+    public void ReportPlayerSeen(Vector3 worldPos) {
+        if (!enableBlackboard) return;
+        lastPlayerSeenPos = worldPos;
+        lastPlayerSeenTime = Time.time;
+    }
+
+    public bool TryGetRecentPlayerSeen(out Vector3 worldPos) {
+        worldPos = lastPlayerSeenPos;
+        if (!enableBlackboard) return false;
+        if (Time.time - lastPlayerSeenTime > sharedMemorySeconds) return false;
+        return true;
+    }
+
+    public void ReportNoise(Vector3 worldPos) {
+        if (!enableBlackboard) return;
+        lastNoisePos = worldPos;
+        lastNoiseTime = Time.time;
+    }
+
+    public bool TryGetRecentNoise(out Vector3 worldPos) {
+        worldPos = lastNoisePos;
+        if (!enableBlackboard) return false;
+        if (Time.time - lastNoiseTime > sharedMemorySeconds) return false;
+        return true;
+    }
+
 #if UNITY_EDITOR
     void OnDrawGizmosSelected() {
         if (!leader) leader = transform;
         Gizmos.color = new Color(0f, 0.8f, 1f, 0.2f);
-        // Dibuja primer anillo
         Gizmos.DrawWireSphere(leader.position, ringRadius);
     }
 #endif
