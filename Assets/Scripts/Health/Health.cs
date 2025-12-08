@@ -1,20 +1,12 @@
 using UnityEngine;
 using UnityEngine.Events;
 using System;
-
-/// <summary>
-/// Componente de vida genérico para Player/Enemy/NPC.
-/// Maneja daño, curación, i-frames, auto-regeneración y eventos.
-/// </summary>
+using System.Collections;
 public class Health : MonoBehaviour {
     [Header("Vida")]
-    [Tooltip("Vida máxima del personaje.")]
     public float maxHealth = 100f;
-
-    [Tooltip("Vida actual al iniciar el juego (si 0 usa maxHealth).")]
     public float startHealth = 0f;
 
-    [Tooltip("Si está muerto, se ignoran curaciones y daños adicionales.")]
     [SerializeField] private bool isDead = false;
 
     [Header("Invulnerabilidad")]
@@ -26,18 +18,18 @@ public class Health : MonoBehaviour {
     [Min(0f)] public float regenRate = 5f;
 
     [Header("Comportamiento al morir")]
-    [Tooltip("Si está activado, el objeto se desactiva automáticamente al morir.")]
     public bool deactivateOnDeath = true;
-
-    [Tooltip("Retraso antes de desactivar el objeto (segundos).")]
     [Min(0f)] public float deathDeactivateDelay = 1.0f;
+
+    [Header("Pooling (opcional para enemigos)")]
+    public bool usePooling = false;
+    public EnemyPool enemyPool;
 
     [Header("Eventos (UnityEvents)")]
     public UnityEvent onDamaged;
     public UnityEvent onHealed;
     public UnityEvent onDied;
 
-    // === Señal C#: (current, max) ===
     public event Action<float, float> OnHealthChanged;
 
     public float CurrentHealth { get; private set; }
@@ -58,7 +50,6 @@ public class Health : MonoBehaviour {
         if (_invulnTimer > 0f) _invulnTimer -= Time.deltaTime;
         if (!isDead) _sinceLastDamage += Time.deltaTime;
 
-        // Auto-regeneración
         if (autoRegen && !isDead && _sinceLastDamage >= regenDelay && CurrentHealth < maxHealth) {
             float before = CurrentHealth;
             CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + regenRate * Time.deltaTime);
@@ -107,8 +98,28 @@ public class Health : MonoBehaviour {
         onDied?.Invoke();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
 
-        if (deactivateOnDeath)
-            Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
+        if (usePooling && enemyPool != null) {
+            if (deathDeactivateDelay > 0f)
+                StartCoroutine(ReturnToPoolAfterDelay());
+            else
+                enemyPool.Despawn(gameObject);
+        }
+        else if (deactivateOnDeath) {
+            if (deathDeactivateDelay > 0f)
+                Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
+            else
+                DeactivateSelf();
+        }
+    }
+
+    IEnumerator ReturnToPoolAfterDelay() {
+        yield return new WaitForSeconds(deathDeactivateDelay);
+        if (enemyPool != null) {
+            enemyPool.Despawn(gameObject);
+        }
+        else {
+            gameObject.SetActive(false);
+        }
     }
 
     void DeactivateSelf() {
@@ -116,4 +127,12 @@ public class Health : MonoBehaviour {
     }
 
     public float GetHealth01() => (maxHealth > 0f) ? (CurrentHealth / maxHealth) : 0f;
+
+    public void ResetFullHealth() {
+        isDead = false;
+        CurrentHealth = maxHealth;
+        _invulnTimer = 0f;
+        _sinceLastDamage = 0f;
+        OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
+    }
 }

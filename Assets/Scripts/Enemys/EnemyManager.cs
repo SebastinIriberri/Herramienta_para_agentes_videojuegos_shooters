@@ -70,7 +70,7 @@ public class EnemyManager : MonoBehaviour {
     [HideInInspector] public float lastHeardNoiseTime;
 
     [Header("Debug")]
-    [SerializeField] string currentStateName = "(none)";
+    [SerializeField] private string currentStateName = "(none)";
     public Transform currentTarget;
 
     public bool debugDrawDetectionRange = true;
@@ -159,6 +159,14 @@ public class EnemyManager : MonoBehaviour {
     }
 
     void Start() {
+        SetInitialState();
+    }
+
+    void Update() {
+        currentState?.Update(this);
+    }
+
+    void SetInitialState() {
         if (role == EnemyRole.Grunt && squadGroup != null) {
             TransitionTo(followLeaderState);
         }
@@ -171,10 +179,6 @@ public class EnemyManager : MonoBehaviour {
         else {
             TransitionTo(patrolState);
         }
-    }
-
-    void Update() {
-        currentState?.Update(this);
     }
 
     public void TransitionTo(IEnemyState s) {
@@ -207,29 +211,16 @@ public class EnemyManager : MonoBehaviour {
     public void GoToChase() => TransitionTo(chaseState);
     public void GoToAttack() => TransitionTo(attackState);
     public void GoToWander() => TransitionTo(wanderState);
-    public void GoToInvestigateNoise() => TransitionTo(investigateNoiseState);
 
     void OnTriggerEnter(Collider other) {
         if (!other.CompareTag("Player")) return;
-        if (IsInFOV(other.transform)) {
-            currentTarget = other.transform;
-            lastSeenPos = other.transform.position;
-            lastSeenTime = Time.time;
-            if (squadGroup != null) squadGroup.ReportPlayerSeen(lastSeenPos);
-        }
+        if (IsInFOV(other.transform)) currentTarget = other.transform;
     }
 
     void OnTriggerStay(Collider other) {
         if (!other.CompareTag("Player")) return;
-        if (IsInFOV(other.transform)) {
-            currentTarget = other.transform;
-            lastSeenPos = other.transform.position;
-            lastSeenTime = Time.time;
-            if (squadGroup != null) squadGroup.ReportPlayerSeen(lastSeenPos);
-        }
-        else if (currentTarget == other.transform) {
-            currentTarget = null;
-        }
+        if (IsInFOV(other.transform)) currentTarget = other.transform;
+        else if (currentTarget == other.transform) currentTarget = null;
     }
 
     void OnTriggerExit(Collider other) {
@@ -312,6 +303,7 @@ public class EnemyManager : MonoBehaviour {
         if (unit) unit.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
     }
 
+    [Header("Patrullaje (solo Elite o fallback)")]
     public Transform[] patrolPoints;
     public float waitAtPointSeconds = 1.5f;
     [HideInInspector] public int currentPatrolIndex = 0;
@@ -333,8 +325,6 @@ public class EnemyManager : MonoBehaviour {
 
         lastHeardNoisePos = info.position;
         lastHeardNoiseTime = Time.time;
-
-        if (squadGroup != null) squadGroup.ReportNoise(info.position);
 
         TransitionTo(investigateNoiseState);
     }
@@ -404,4 +394,29 @@ public class EnemyManager : MonoBehaviour {
         unit?.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
     }
 #endif
+
+    public void ResetForRespawn(Vector3 position, Quaternion rotation) {
+        transform.SetPositionAndRotation(position, rotation);
+
+        currentTarget = null;
+        lastSeenPos = Vector3.zero;
+        lastSeenTime = 0f;
+        lastHeardNoisePos = Vector3.zero;
+        lastHeardNoiseTime = 0f;
+
+        if (unit != null) {
+            unit.StopFollowing();
+        }
+
+        if (_health != null) {
+            _health.ResetFullHealth();
+        }
+
+        if (shooter) shooter.enabled = true;
+        if (enemyAnimator) enemyAnimator.enabled = true;
+
+        enabled = true;
+
+        SetInitialState();
+    }
 }
