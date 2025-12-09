@@ -17,6 +17,7 @@ public class EnemyManagerEditor : Editor
     static bool foldFollow = true;
     static bool foldWander = true;
     static bool foldHearing = true;
+    static bool foldLOD = true;
     static bool foldDebug = true;
     static bool foldDeps = true;
     static bool foldPatrol = true;
@@ -95,6 +96,13 @@ public class EnemyManagerEditor : Editor
             "hearingCooldownSeconds",
             "investigateWaitSeconds"
         );
+
+        DrawFold("LOD de IA", ref foldLOD,
+         "currentLOD",
+         "aiTickIntervalHigh",
+         "aiTickIntervalMedium",
+         "aiTickIntervalLow"
+     );
 
         DrawFold("Debug", ref foldDebug,
             "currentStateName",

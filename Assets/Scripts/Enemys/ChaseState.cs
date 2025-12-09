@@ -12,7 +12,6 @@ public class ChaseState : IEnemyState {
             m.unit?.StartFollowing(m.currentTarget);
             m.lastSeenPos = m.currentTarget.position;
             m.lastSeenTime = Time.time;
-            if (m.squadGroup != null) m.squadGroup.ReportPlayerSeen(m.lastSeenPos);
         }
     }
 
@@ -45,14 +44,13 @@ public class ChaseState : IEnemyState {
         }
 
         bool inFOV = m.IsInFOV(m.currentTarget);
-        bool hasLOS = m.HasLineOfSight(m.currentTarget, m.detectionRange);
+        bool hasLOS = m.ShouldUseFullLOSCheck() ? m.HasLineOfSight(m.currentTarget, m.detectionRange) : true;
         bool visible = inFOV && (!m.chaseRequireLineOfSight || hasLOS);
 
         if (visible) {
             lostSightTimer = 0f;
             m.lastSeenPos = m.currentTarget.position;
             m.lastSeenTime = Time.time;
-            if (m.squadGroup != null) m.squadGroup.ReportPlayerSeen(m.lastSeenPos);
         }
         else {
             lostSightTimer += Time.deltaTime;
@@ -83,7 +81,8 @@ public class ChaseState : IEnemyState {
         repathTimer -= Time.deltaTime;
         if (repathTimer <= 0f) {
             m.unit?.StartFollowing(m.currentTarget);
-            repathTimer = Mathf.Max(0.05f, m.chaseRepathInterval);
+            float factor = m.GetLODRepathMultiplier();
+            repathTimer = Mathf.Max(0.05f, m.chaseRepathInterval * factor);
         }
     }
 

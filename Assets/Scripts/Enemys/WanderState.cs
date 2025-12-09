@@ -20,24 +20,9 @@ public class WanderState : IEnemyState {
     public void Update(EnemyManager m) {
         if (m.currentTarget != null) {
             float dist = Vector3.Distance(m.transform.position, m.currentTarget.position);
-            if (m.squadGroup != null) m.squadGroup.ReportPlayerSeen(m.currentTarget.position);
-            m.lastSeenPos = m.currentTarget.position;
-            m.lastSeenTime = Time.time;
             if (dist <= m.attackRange) m.GoToAttack();
             else m.GoToChase();
             return;
-        }
-
-        if (m.squadGroup != null && m.squadGroup.enableBlackboard) {
-            Vector3 sharedPos;
-            if (m.squadGroup.TryGetRecentPlayerSeen(out sharedPos)) {
-                if (Time.time - m.lastSeenTime > m.targetMemorySeconds) {
-                    m.lastSeenPos = sharedPos;
-                    m.lastSeenTime = Time.time;
-                    m.GoToChase();
-                    return;
-                }
-            }
         }
 
         float arriveTol = Mathf.Max(0.05f, m.wanderArriveTolerance) + Mathf.Max(0f, m.stoppingDistance);
@@ -79,7 +64,8 @@ public class WanderState : IEnemyState {
         repathTimer -= Time.deltaTime;
         if (repathTimer <= 0f) {
             m.FollowPoint(currentGoal);
-            repathTimer = Mathf.Max(0.25f, m.wanderRepathInterval);
+            float factor = m.GetLODRepathMultiplier();
+            repathTimer = Mathf.Max(0.25f, m.wanderRepathInterval * factor);
         }
 
         RotateTowards(m, currentGoal);

@@ -6,7 +6,6 @@ public class Health : MonoBehaviour {
     [Header("Vida")]
     public float maxHealth = 100f;
     public float startHealth = 0f;
-
     [SerializeField] private bool isDead = false;
 
     [Header("Invulnerabilidad")]
@@ -21,7 +20,7 @@ public class Health : MonoBehaviour {
     public bool deactivateOnDeath = true;
     [Min(0f)] public float deathDeactivateDelay = 1.0f;
 
-    [Header("Pooling (opcional para enemigos)")]
+    [Header("Pooling (opcional)")]
     public bool usePooling = false;
     public EnemyPool enemyPool;
 
@@ -99,40 +98,26 @@ public class Health : MonoBehaviour {
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
 
         if (usePooling && enemyPool != null) {
-            if (deathDeactivateDelay > 0f)
-                StartCoroutine(ReturnToPoolAfterDelay());
-            else
-                enemyPool.Despawn(gameObject);
-        }
-        else if (deactivateOnDeath) {
-            if (deathDeactivateDelay > 0f)
-                Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
-            else
-                DeactivateSelf();
-        }
-    }
-
-    IEnumerator ReturnToPoolAfterDelay() {
-        yield return new WaitForSeconds(deathDeactivateDelay);
-        if (enemyPool != null) {
             enemyPool.Despawn(gameObject);
+            return;
         }
-        else {
-            gameObject.SetActive(false);
-        }
+
+        if (deactivateOnDeath)
+            Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
     }
 
     void DeactivateSelf() {
         gameObject.SetActive(false);
     }
 
-    public float GetHealth01() => (maxHealth > 0f) ? (CurrentHealth / maxHealth) : 0f;
-
-    public void ResetFullHealth() {
+    public void ResetForRespawn() {
+        CancelInvoke(nameof(DeactivateSelf));
         isDead = false;
         CurrentHealth = maxHealth;
         _invulnTimer = 0f;
         _sinceLastDamage = 0f;
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
+
+    public float GetHealth01() => (maxHealth > 0f) ? (CurrentHealth / maxHealth) : 0f;
 }

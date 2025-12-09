@@ -1,6 +1,7 @@
 using UnityEngine;
 
 public enum EnemyRole { Grunt, Elite }
+public enum EnemyAILOD { High, Medium, Low }
 
 [RequireComponent(typeof(SphereCollider))]
 public class EnemyManager : MonoBehaviour {
@@ -69,6 +70,12 @@ public class EnemyManager : MonoBehaviour {
     [HideInInspector] public Vector3 lastHeardNoisePos;
     [HideInInspector] public float lastHeardNoiseTime;
 
+    [Header("LOD de IA")]
+    public EnemyAILOD currentLOD = EnemyAILOD.High;
+    public float aiTickIntervalHigh = 0f;
+    public float aiTickIntervalMedium = 0.25f;
+    public float aiTickIntervalLow = 1.0f;
+
     [Header("Debug")]
     [SerializeField] private string currentStateName = "(none)";
     public Transform currentTarget;
@@ -114,6 +121,7 @@ public class EnemyManager : MonoBehaviour {
     readonly InvestigateNoiseState investigateNoiseState = new InvestigateNoiseState();
 
     Vector3 _spawnPos;
+    float _aiTickTimer;
 
     void OnValidate() {
         if (!visionCollider) visionCollider = GetComponent<SphereCollider>();
@@ -151,22 +159,24 @@ public class EnemyManager : MonoBehaviour {
     void OnEnable() {
         if (_health) _health.onDied.AddListener(OnDiedHandler);
         NoiseSystem.OnNoiseEmitted += HandleNoise;
+        if (EnemyLODManager.Instance != null) EnemyLODManager.Instance.Register(this);
     }
 
     void OnDisable() {
         if (_health) _health.onDied.RemoveListener(OnDiedHandler);
         NoiseSystem.OnNoiseEmitted -= HandleNoise;
+        if (EnemyLODManager.Instance != null) EnemyLODManager.Instance.Unregister(this);
     }
 
     void Start() {
-        SetInitialState();
+        InitState();
     }
 
-    void Update() {
-        currentState?.Update(this);
-    }
+    void InitState() {
+        currentTarget = null;
+        lastSeenTime = -999f;
+        lastHeardNoiseTime = -999f;
 
-    void SetInitialState() {
         if (role == EnemyRole.Grunt && squadGroup != null) {
             TransitionTo(followLeaderState);
         }
@@ -179,6 +189,16 @@ public class EnemyManager : MonoBehaviour {
         else {
             TransitionTo(patrolState);
         }
+    }
+
+    void Update() {
+        float interval = GetCurrentAITickInterval();
+        if (interval > 0f) {
+            _aiTickTimer -= Time.deltaTime;
+            if (_aiTickTimer > 0f) return;
+            _aiTickTimer = interval;
+        }
+        currentState?.Update(this);
     }
 
     public void TransitionTo(IEnemyState s) {
@@ -197,8 +217,26 @@ public class EnemyManager : MonoBehaviour {
 
         if (shooter) shooter.enabled = false;
         if (enemyAnimator) enemyAnimator.enabled = false;
+    }
 
-        enabled = false;
+    public void ResetForRespawn(Vector3 position, Quaternion rotation) {
+        transform.SetPositionAndRotation(position, rotation);
+        _spawnPos = position;
+
+        if (_health != null) _health.ResetForRespawn();
+
+        currentTarget = null;
+        lastSeenTime = -999f;
+        lastHeardNoiseTime = -999f;
+        lastSeenPos = position;
+        runtimeAnchor = null;
+
+        _aiTickTimer = 0f;
+
+        if (shooter) shooter.enabled = true;
+        if (enemyAnimator) enemyAnimator.enabled = true;
+
+        InitState();
     }
 
     public void GoToPatrol() {
@@ -303,7 +341,6 @@ public class EnemyManager : MonoBehaviour {
         if (unit) unit.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
     }
 
-    [Header("Patrullaje (solo Elite o fallback)")]
     public Transform[] patrolPoints;
     public float waitAtPointSeconds = 1.5f;
     [HideInInspector] public int currentPatrolIndex = 0;
@@ -366,6 +403,32 @@ public class EnemyManager : MonoBehaviour {
         }
     }
 
+    public void SetLOD(EnemyAILOD level) {
+        if (currentLOD == level) return;
+        currentLOD = level;
+        _aiTickTimer = 0f;
+    }
+
+    public float GetCurrentAITickInterval() {
+        switch (currentLOD) {
+            case EnemyAILOD.Medium: return aiTickIntervalMedium;
+            case EnemyAILOD.Low: return aiTickIntervalLow;
+            default: return aiTickIntervalHigh;
+        }
+    }
+
+    public float GetLODRepathMultiplier() {
+        switch (currentLOD) {
+            case EnemyAILOD.Medium: return 2f;
+            case EnemyAILOD.Low: return 4f;
+            default: return 1f;
+        }
+    }
+
+    public bool ShouldUseFullLOSCheck() {
+        return currentLOD != EnemyAILOD.Low;
+    }
+
 #if UNITY_EDITOR
     public void ForceValidateForDesigner() {
         if (!visionCollider) visionCollider = GetComponent<SphereCollider>();
@@ -394,29 +457,4 @@ public class EnemyManager : MonoBehaviour {
         unit?.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
     }
 #endif
-
-    public void ResetForRespawn(Vector3 position, Quaternion rotation) {
-        transform.SetPositionAndRotation(position, rotation);
-
-        currentTarget = null;
-        lastSeenPos = Vector3.zero;
-        lastSeenTime = 0f;
-        lastHeardNoisePos = Vector3.zero;
-        lastHeardNoiseTime = 0f;
-
-        if (unit != null) {
-            unit.StopFollowing();
-        }
-
-        if (_health != null) {
-            _health.ResetFullHealth();
-        }
-
-        if (shooter) shooter.enabled = true;
-        if (enemyAnimator) enemyAnimator.enabled = true;
-
-        enabled = true;
-
-        SetInitialState();
-    }
 }
