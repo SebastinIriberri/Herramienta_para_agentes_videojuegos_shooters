@@ -6,9 +6,9 @@ public class BulletPool : MonoBehaviour {
     public int poolSize = 20;
     public bool expandable = true;
 
-    private readonly Queue<GameObject> _pool = new Queue<GameObject>();
+    readonly Queue<GameObject> _pool = new Queue<GameObject>();
 
-    private void Awake() {
+    void Awake() {
         if (!bulletPrefab) {
             Debug.LogError($"{name}: BulletPool sin prefab asignado.");
             return;
@@ -16,13 +16,12 @@ public class BulletPool : MonoBehaviour {
 
         for (int i = 0; i < poolSize; i++) {
             var b = CreateBullet();
-            _pool.Enqueue(b); // ya viene inactivo
+            _pool.Enqueue(b);
         }
     }
 
     GameObject CreateBullet() {
         GameObject go = Instantiate(bulletPrefab, transform);
-        // Asegurar que arranque inactivo
         if (go.activeSelf) go.SetActive(false);
 
         var bullet = go.GetComponent<Bullet>();
@@ -30,18 +29,17 @@ public class BulletPool : MonoBehaviour {
             bullet = go.AddComponent<Bullet>();
             Debug.LogWarning($"{name}: El prefab no tenía Bullet, se agregó automáticamente.");
         }
-        return go; // INACTIVO
+        return go;
     }
 
     public GameObject GetBullet() {
         if (_pool.Count > 0) {
             var go = _pool.Dequeue();
-            // IMPORTANTE: NO activar aquí. Se activará en Bullet.Spawn(...)
             return go;
         }
 
         if (expandable) {
-            var go = CreateBullet(); // ya inactivo
+            var go = CreateBullet();
             return go;
         }
 

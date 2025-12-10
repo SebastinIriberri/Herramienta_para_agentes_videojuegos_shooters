@@ -1,8 +1,4 @@
 using UnityEngine;
-/// <summary>
-/// Hitbox que reenvía daño al Health del dueño, aplicando un multiplicador.
-/// Coloca este script en colliders hijos (isTrigger recomendado).
-/// </summary>
 public class Hitbox : MonoBehaviour {
     [Tooltip("Componente Health del dueño (si se deja vacío, busca en padres).")]
     public Health ownerHealth;

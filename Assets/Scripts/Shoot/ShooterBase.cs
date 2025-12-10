@@ -25,6 +25,21 @@ public class ShooterBase : MonoBehaviour{
     [Tooltip("Distancia adicional para separar la bala del FirePoint y evitar colisiones al aparecer.")]
     public float spawnOffset = 0.15f;
 
+    [Header("Munición (opcional)")]
+    [Tooltip("Si es false, munición infinita. Si es true, usa cargador + recarga.")]
+    public bool useAmmo = false;
+
+    [Min(1)]
+    [Tooltip("Balas por cargador.")]
+    public int clipSize = 12;
+
+    [Min(0f)]
+    [Tooltip("Tiempo de recarga en segundos.")]
+    public float reloadSeconds = 1.5f;
+
+    [SerializeField, Tooltip("Munición actual del cargador (solo lectura en inspector).")]
+    private int currentAmmo;
+
     [Header("SFX (opcional)")]
     [Tooltip("Sonido a reproducir al disparar (si se utiliza el sistema de audio).")]
     public AudioSystem.SoundData shootSound;
@@ -32,6 +47,19 @@ public class ShooterBase : MonoBehaviour{
     [Header("Depuración")]
     [Tooltip("Temporizador interno del cooldown (solo lectura).")]
     [SerializeField] private float shootTimer = 0f;
+
+    public int CurrentAmmo => currentAmmo;
+    public bool IsMagazineEmpty => useAmmo && currentAmmo <= 0;
+
+    protected virtual void OnEnable() {
+        // Inicializamos el cargador cuando se habilita el arma
+        if (useAmmo) {
+            if (clipSize < 1) clipSize = 1;
+            if (currentAmmo <= 0 || currentAmmo > clipSize) {
+                currentAmmo = clipSize;
+            }
+        }
+    }
 
     protected virtual void Update() {
         if (shootTimer > 0f) {
@@ -43,8 +71,12 @@ public class ShooterBase : MonoBehaviour{
         }
     }
 
-    /// <summary>Devuelve true si el arma puede disparar (cooldown completado).</summary>
-    protected bool CanShoot() => shootTimer <= 0f;
+    /// <summary>Devuelve true si el arma puede disparar (cooldown completado y hay balas si useAmmo).</summary>
+    protected bool CanShoot() {
+        if (shootTimer > 0f) return false;
+        if (useAmmo && currentAmmo <= 0) return false;
+        return true;
+    }
 
     /// <summary>Reinicia el cooldown tras disparar.</summary>
     protected void ResetShootTimer() => shootTimer = cooldownSeconds;
@@ -73,6 +105,11 @@ public class ShooterBase : MonoBehaviour{
             initialSpeedOverride
         );
 
+        // Consumir munición si aplica
+        if (useAmmo && clipSize > 0) {
+            currentAmmo = Mathf.Max(0, currentAmmo - 1);
+        }
+
         if (shootSound) {
             AudioSystem.SoundManager.Instance
                 .CreateSound()
@@ -80,5 +117,11 @@ public class ShooterBase : MonoBehaviour{
                 .WithRandomPitch()
                 .Play(shootSound);
         }
+    }
+
+    /// <summary>Rellena instantáneamente el cargador (la animación/tiempo la gestiona la IA).</summary>
+    public void ReloadInstant() {
+        if (!useAmmo) return;
+        currentAmmo = clipSize;
     }
 }

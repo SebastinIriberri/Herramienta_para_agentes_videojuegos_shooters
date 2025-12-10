@@ -14,9 +14,11 @@ public class EnemyManagerEditor : Editor
     static bool foldChase = true;
     static bool foldAttack = true;
     static bool foldCombat = true;
+    static bool foldCover = true;
     static bool foldFollow = true;
     static bool foldWander = true;
     static bool foldHearing = true;
+    static bool foldLOD = true;
     static bool foldDebug = true;
     static bool foldDeps = true;
     static bool foldPatrol = true;
@@ -65,10 +67,21 @@ public class EnemyManagerEditor : Editor
         );
 
         DrawFold("Combate: colisiones y strafe", ref foldCombat,
+            "canStrafe",
             "combatObstacleMask",
             "combatSkin",
             "strafeSpeedFactor",
             "strafeBlockedFramesToFlip"
+        );
+
+        DrawFold("Cobertura", ref foldCover,
+       "canUseCover",
+       "coverLowHealthThreshold",
+       "coverUnderFireWindow",
+       "coverMaxSearchRadius",
+       "coverChanceOnHit",
+       "coverRetryCooldown",
+       "coverDuration"
         );
 
         DrawFold("Follow (solo Grunt)", ref foldFollow,
@@ -95,6 +108,13 @@ public class EnemyManagerEditor : Editor
             "hearingCooldownSeconds",
             "investigateWaitSeconds"
         );
+
+        DrawFold("LOD de IA", ref foldLOD,
+         "currentLOD",
+         "aiTickIntervalHigh",
+         "aiTickIntervalMedium",
+         "aiTickIntervalLow"
+     );
 
         DrawFold("Debug", ref foldDebug,
             "currentStateName",
