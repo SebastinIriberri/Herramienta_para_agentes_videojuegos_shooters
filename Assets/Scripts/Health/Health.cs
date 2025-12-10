@@ -68,6 +68,13 @@ public class Health : MonoBehaviour {
         _invulnTimer = invulnerabilitySeconds;
 
         if (CurrentHealth < before) {
+            var enemy = GetComponent<EnemyManager>();
+            if (enemy != null && CurrentHealth > 0f) {
+                float normalized = GetHealth01();
+                Transform attacker = info.source;
+                enemy.OnHit(attacker, normalized);
+            }
+
             onDamaged?.Invoke();
             OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         }

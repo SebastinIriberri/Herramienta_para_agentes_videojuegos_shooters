@@ -40,7 +40,22 @@ public class EnemyManager : MonoBehaviour {
     public float maxLostSightTime = 3f;
     public float exitAttackExtra = 0.5f;
 
+    [Header("Cobertura")]
+    public bool canUseCover = true;
+    [Range(0f, 1f)] public float coverLowHealthThreshold = 0.35f;
+    public float coverUnderFireWindow = 2.5f;
+    public float coverMaxSearchRadius = 12f;
+    [Range(0f, 1f)] public float coverChanceOnHit = 0.6f;
+    public float coverRetryCooldown = 2.5f;
+    public float coverDuration = 2f;
+
+    [HideInInspector] public CoverPoint currentCover;
+    [HideInInspector] public float lastUnderFireTime;
+    [HideInInspector] public float lastCoverDecisionTime;
+    [HideInInspector] public Transform lastThreat;
+
     [Header("Combate: colisiones y strafe")]
+    public bool canStrafe = true;
     public LayerMask combatObstacleMask = ~0;
     public float combatSkin = 0.05f;
     public float strafeSpeedFactor = 0.6f;
@@ -119,6 +134,8 @@ public class EnemyManager : MonoBehaviour {
     readonly FollowLeaderState followLeaderState = new FollowLeaderState();
     readonly WanderState wanderState = new WanderState();
     readonly InvestigateNoiseState investigateNoiseState = new InvestigateNoiseState();
+    readonly CoverState coverState = new CoverState();
+    readonly ReloadState reloadState = new ReloadState();
 
     Vector3 _spawnPos;
     float _aiTickTimer;
@@ -210,6 +227,8 @@ public class EnemyManager : MonoBehaviour {
     }
 
     void OnDiedHandler() {
+        ReleaseCover();
+
         currentState?.Exit(this);
         currentState = null;
 
@@ -220,6 +239,8 @@ public class EnemyManager : MonoBehaviour {
     }
 
     public void ResetForRespawn(Vector3 position, Quaternion rotation) {
+        ReleaseCover();
+
         transform.SetPositionAndRotation(position, rotation);
         _spawnPos = position;
 
@@ -246,9 +267,23 @@ public class EnemyManager : MonoBehaviour {
         else TransitionTo(patrolState);
     }
 
+    public void GoToCover() {
+        if (!canUseCover) return;
+        if (currentCover == null) return;
+        TransitionTo(coverState);
+    }
+
+    public void ReleaseCover() {
+        if (currentCover != null) {
+            currentCover.Release(this);
+            currentCover = null;
+        }
+    }
+
     public void GoToChase() => TransitionTo(chaseState);
     public void GoToAttack() => TransitionTo(attackState);
     public void GoToWander() => TransitionTo(wanderState);
+    public void GoToReload() => TransitionTo(reloadState);
 
     void OnTriggerEnter(Collider other) {
         if (!other.CompareTag("Player")) return;
@@ -364,6 +399,65 @@ public class EnemyManager : MonoBehaviour {
         lastHeardNoiseTime = Time.time;
 
         TransitionTo(investigateNoiseState);
+    }
+
+    public void OnHit(Transform attacker, float currentHealthNormalized) {
+        lastThreat = attacker;
+        lastUnderFireTime = Time.time;
+
+        // DEBUG opcional para ver que realmente entra aquí
+        Debug.Log($"{name} OnHit: health01={currentHealthNormalized:F2}, attacker={attacker}");
+
+        if (!canUseCover) return;
+        if (attacker == null) return;
+        if (currentLOD == EnemyAILOD.Low) return;
+
+        // Evita spamear decisiones de cover
+        if (Time.time - lastCoverDecisionTime < coverRetryCooldown) return;
+
+        bool lowHealth = currentHealthNormalized <= coverLowHealthThreshold;
+        bool underFire = (Time.time - lastUnderFireTime) <= coverUnderFireWindow;
+
+        // DEBUG opcional
+        Debug.Log($"{name} Cover check -> lowHealth={lowHealth}, underFire={underFire}");
+
+        // Si no está con poca vida NI bajo fuego reciente, no pide cover
+        if (!lowHealth && !underFire) return;
+
+        // Probabilidad de decidir ir a cover
+        if (Random.value > coverChanceOnHit) {
+            lastCoverDecisionTime = Time.time;
+            Debug.Log($"{name} decidió NO ir a cover (falló probabilidad).");
+            return;
+        }
+
+        if (CoverManager.Instance == null) {
+            Debug.LogWarning($"{name}: No hay CoverManager en la escena.");
+            return;
+        }
+
+        CoverPoint best;
+        if (!CoverManager.Instance.TryFindBestCover(
+            transform.position,
+            attacker.position,
+            coverMaxSearchRadius,
+            out best)) {
+            lastCoverDecisionTime = Time.time;
+            Debug.Log($"{name}: no encontró cover dentro de radio {coverMaxSearchRadius}.");
+            return;
+        }
+
+        if (currentCover != null && currentCover != best) {
+            currentCover.Release(this);
+        }
+
+        currentCover = best;
+        currentCover.Reserve(this);
+
+        lastCoverDecisionTime = Time.time;
+
+        Debug.Log($"{name} -> yendo a cover: {currentCover.name}");
+        GoToCover();
     }
 
     void OnDrawGizmosSelected() {

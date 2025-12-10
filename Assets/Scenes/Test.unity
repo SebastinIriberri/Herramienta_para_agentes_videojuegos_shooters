@@ -2377,6 +2377,10 @@ MonoBehaviour:
   spawnOffset: 0.15
   shootSound: {fileID: 0}
   shootTimer: 0
+  lineOfFireMask:
+    serializedVersion: 2
+    m_Bits: 512
+  targetHeightOffset: 1.5
 --- !u!95 &1189568596
 Animator:
   serializedVersion: 7
@@ -2432,6 +2436,7 @@ MonoBehaviour:
   chaseRequireLineOfSight: 0
   maxLostSightTime: 3
   exitAttackExtra: 0.5
+  canStrafe: 1
   combatObstacleMask:
     serializedVersion: 2
     m_Bits: 64

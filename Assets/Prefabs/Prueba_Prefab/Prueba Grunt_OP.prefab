@@ -2280,6 +2280,18 @@ MonoBehaviour:
   chaseRequireLineOfSight: 1
   maxLostSightTime: 3
   exitAttackExtra: 0.5
+  canUseCover: 1
+  coverLowHealthThreshold: 0.35
+  coverUnderFireWindow: 2.5
+  coverMaxSearchRadius: 30
+  coverChanceOnHit: 1
+  coverRetryCooldown: 2.5
+  coverDuration: 10
+  currentCover: {fileID: 0}
+  lastUnderFireTime: 0
+  lastCoverDecisionTime: 0
+  lastThreat: {fileID: 0}
+  canStrafe: 1
   combatObstacleMask:
     serializedVersion: 2
     m_Bits: 64
@@ -2304,6 +2316,10 @@ MonoBehaviour:
   investigateWaitSeconds: 2
   lastHeardNoisePos: {x: 0, y: 0, z: 0}
   lastHeardNoiseTime: 0
+  currentLOD: 0
+  aiTickIntervalHigh: 0
+  aiTickIntervalMedium: 0.25
+  aiTickIntervalLow: 1
   currentStateName: (none)
   currentTarget: {fileID: 0}
   debugDrawDetectionRange: 0
@@ -2375,8 +2391,16 @@ MonoBehaviour:
   cooldownSeconds: 0.35
   fireRange: 25
   spawnOffset: 0.15
+  useAmmo: 1
+  clipSize: 2
+  reloadSeconds: 3
+  currentAmmo: 0
   shootSound: {fileID: 0}
   shootTimer: 0
+  lineOfFireMask:
+    serializedVersion: 2
+    m_Bits: 512
+  targetHeightOffset: 1.5
 --- !u!114 &4130019125589834360
 MonoBehaviour:
   m_ObjectHideFlags: 0
