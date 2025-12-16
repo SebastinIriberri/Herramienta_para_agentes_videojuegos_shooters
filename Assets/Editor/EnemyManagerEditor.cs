@@ -3,9 +3,7 @@ using UnityEngine;
 
 [CustomEditor(typeof(EnemyManager))]
 [CanEditMultipleObjects]
-
-public class EnemyManagerEditor : Editor
-{
+public class EnemyManagerEditor : Editor {
     static bool foldRole = true;
     static bool foldArchetype = true;
     static bool foldVision = true;
@@ -13,8 +11,9 @@ public class EnemyManagerEditor : Editor
     static bool foldMemory = true;
     static bool foldChase = true;
     static bool foldAttack = true;
-    static bool foldCombat = true;
     static bool foldCover = true;
+    static bool foldMelee = true;
+    static bool foldCombat = true;
     static bool foldFollow = true;
     static bool foldWander = true;
     static bool foldHearing = true;
@@ -40,14 +39,20 @@ public class EnemyManagerEditor : Editor
         DrawFold("Visión y Rangos", ref foldVision,
             "detectionRange",
             "attackRange",
-            "viewAngle"
+            "viewAngle",
+            "debugDrawDetectionRange",
+            "debugColorDetection",
+            "debugDrawViewCone",
+            "debugColorViewCone"
         );
 
         DrawFold("Movimiento", ref foldMovement,
             "moveSpeed",
             "turnSpeed",
             "stoppingDistance",
-            "turnDst"
+            "turnDst",
+            "debugDrawTurnLines",
+            "debugColorTurnLines"
         );
 
         DrawFold("Memoria visual", ref foldMemory,
@@ -63,7 +68,39 @@ public class EnemyManagerEditor : Editor
 
         DrawFold("Ataque (Attack)", ref foldAttack,
             "maxLostSightTime",
-            "exitAttackExtra"
+            "exitAttackExtra",
+            "debugDrawAttackRange",
+            "debugColorAttack"
+        );
+
+        DrawFold("Cobertura", ref foldCover,
+            "canUseCover",
+            "coverLowHealthThreshold",
+            "coverUnderFireWindow",
+            "coverMaxSearchRadius",
+            "coverChanceOnHit",
+            "coverRetryCooldown",
+            "coverDuration"
+        );
+
+        DrawFold("Melee", ref foldMelee,
+            "canUseMelee",
+            "meleeTriggerDistance",
+            "meleeRange",
+            "meleeHitRadius",
+            "meleeForwardOffset",
+            "meleeAngle",
+            "meleeDamage",
+            "meleeCooldown",
+            "meleeFailSafeSeconds",
+            "meleeHitMask",
+            "postMeleeShootBlockSeconds",
+            "debugDrawMeleeTrigger",
+            "debugColorMeleeTrigger",
+            "debugDrawMeleeHit",
+            "debugColorMeleeHit",
+            "debugDrawMeleeAngle",
+            "debugColorMeleeAngle"
         );
 
         DrawFold("Combate: colisiones y strafe", ref foldCombat,
@@ -71,24 +108,20 @@ public class EnemyManagerEditor : Editor
             "combatObstacleMask",
             "combatSkin",
             "strafeSpeedFactor",
-            "strafeBlockedFramesToFlip"
-        );
-
-        DrawFold("Cobertura", ref foldCover,
-       "canUseCover",
-       "coverLowHealthThreshold",
-       "coverUnderFireWindow",
-       "coverMaxSearchRadius",
-       "coverChanceOnHit",
-       "coverRetryCooldown",
-       "coverDuration"
+            "strafeBlockedFramesToFlip",
+            "debugDrawPath",
+            "debugColorPath",
+            "debugDrawLookPoints",
+            "debugColorLookPoints"
         );
 
         DrawFold("Follow (solo Grunt)", ref foldFollow,
             "followRepathInterval",
             "followAnchorMoveThreshold",
             "followSeparationStrength",
-            "followSeparationRadius"
+            "followSeparationRadius",
+            "debugDrawRuntimeAnchor",
+            "debugColorRuntimeAnchor"
         );
 
         DrawFold("Vagar (Wander)", ref foldWander,
@@ -99,44 +132,30 @@ public class EnemyManagerEditor : Editor
             "wanderWaitMax",
             "wanderRepathInterval",
             "wanderArriveTolerance",
-            "wanderRetargetEvery"
+            "wanderRetargetEvery",
+            "debugDrawWanderArea",
+            "debugColorWander"
         );
 
         DrawFold("Oído (Hearing)", ref foldHearing,
             "enableHearing",
             "hearingRange",
             "hearingCooldownSeconds",
-            "investigateWaitSeconds"
+            "investigateWaitSeconds",
+            "debugDrawHearingRange",
+            "debugColorHearing"
         );
 
         DrawFold("LOD de IA", ref foldLOD,
-         "currentLOD",
-         "aiTickIntervalHigh",
-         "aiTickIntervalMedium",
-         "aiTickIntervalLow"
-     );
+            "currentLOD",
+            "aiTickIntervalHigh",
+            "aiTickIntervalMedium",
+            "aiTickIntervalLow"
+        );
 
         DrawFold("Debug", ref foldDebug,
             "currentStateName",
-            "currentTarget",
-            "debugDrawDetectionRange",
-            "debugDrawAttackRange",
-            "debugDrawViewCone",
-            "debugDrawRuntimeAnchor",
-            "debugDrawWanderArea",
-            "debugDrawPath",
-            "debugDrawTurnLines",
-            "debugDrawLookPoints",
-            "debugDrawHearingRange",
-            "debugColorDetection",
-            "debugColorAttack",
-            "debugColorViewCone",
-            "debugColorRuntimeAnchor",
-            "debugColorWander",
-            "debugColorPath",
-            "debugColorTurnLines",
-            "debugColorLookPoints",
-            "debugColorHearing"
+            "currentTarget"
         );
 
         DrawFold("Dependencias (auto)", ref foldDeps,
@@ -163,8 +182,7 @@ public class EnemyManagerEditor : Editor
             EditorGUI.indentLevel++;
             foreach (string p in props) {
                 var sp = serializedObject.FindProperty(p);
-                if (sp != null)
-                    EditorGUILayout.PropertyField(sp);
+                if (sp != null) EditorGUILayout.PropertyField(sp);
             }
             EditorGUI.indentLevel--;
         }
