@@ -17,17 +17,30 @@ public class AttackState : IEnemyState {
 
     public void Update(EnemyManager m) {
         var shooter = m.shooter;
-        if (shooter && shooter.useAmmo && shooter.IsMagazineEmpty) {
-            // No hay balas ? ir a recargar
-            m.GoToReload();
+
+        if (shooter != null && shooter.IsReloading) {
+            m.unit?.StopFollowing();
             return;
         }
+
+        if (shooter != null && shooter.useAmmo && shooter.IsMagazineEmpty) {
+            shooter.StartReload();
+            m.unit?.StopFollowing();
+            return;
+        }
+
         if (m.currentTarget == null) {
             m.GoToPatrol();
             return;
         }
 
         float dist = Vector3.Distance(m.transform.position, m.currentTarget.position);
+
+        if (m.CanStartMelee(dist)) {
+            m.GoToMelee();
+            return;
+        }
+
         if (dist > m.attackRange + m.exitAttackExtra) {
             m.GoToChase();
             return;
@@ -43,9 +56,9 @@ public class AttackState : IEnemyState {
 
         bool canSee = m.IsInFOV(m.currentTarget) && m.HasLineOfSight(m.currentTarget, m.detectionRange);
         if (canSee) {
-            if (m.shooter != null) {
-                m.shooter.TryShoot(m.currentTarget);
-                if (m.shooter.LastShotBlockedByAlly && m.canStrafe) {
+            if (shooter != null) {
+                shooter.TryShoot(m.currentTarget);
+                if (shooter.LastShotBlockedByAlly && m.canStrafe) {
                     strafeDir *= -1;
                     strafeTimer = 0.15f;
                 }

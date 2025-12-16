@@ -2,27 +2,19 @@ using UnityEngine;
 
 public class ReloadState : IEnemyState
 {
-    float _reloadTimer;
+    float _fallbackTimer;
 
     public void Enter(EnemyManager enemy) {
-        // Se queda quieto: paramos cualquier seguimiento/navmesh
         enemy.unit?.StopFollowing();
 
-        // Opcional: podrías disparar aquí un trigger de animación de recarga
-        // enemy.enemyAnimator?.SetReload(true);  // si luego lo implementas
+        _fallbackTimer = 0.2f;
 
-        float baseTime = enemy.shooter && enemy.shooter.useAmmo
-            ? enemy.shooter.reloadSeconds
-            : 0.1f;
-
-        _reloadTimer = Mathf.Max(0.1f, baseTime);
+        if (enemy.shooter && enemy.shooter.useAmmo) {
+            enemy.shooter.StartReload();
+        }
     }
 
     public void Update(EnemyManager enemy) {
-        // Mientras recarga no se mueve, solo puede rotar para mirar al jugador
-        _reloadTimer -= Time.deltaTime;
-
-        // Mirar hacia el target si existe
         if (enemy.currentTarget) {
             Vector3 dir = enemy.currentTarget.position - enemy.transform.position;
             dir.y = 0f;
@@ -36,15 +28,18 @@ public class ReloadState : IEnemyState
             }
         }
 
-        if (_reloadTimer > 0f)
-            return;
+        bool reloadingByShooter = enemy.shooter && enemy.shooter.useAmmo;
 
-        // Fin de recarga ? rellenamos cargador
-        if (enemy.shooter) {
-            enemy.shooter.ReloadInstant();
+        if (reloadingByShooter) {
+            if (enemy.shooter.IsReloading)
+                return;
+        }
+        else {
+            _fallbackTimer -= Time.deltaTime;
+            if (_fallbackTimer > 0f)
+                return;
         }
 
-        // Decidimos a qué estado volver
         if (enemy.currentTarget) {
             float dist = Vector3.Distance(enemy.transform.position, enemy.currentTarget.position);
 
@@ -62,7 +57,5 @@ public class ReloadState : IEnemyState
     }
 
     public void Exit(EnemyManager enemy) {
-        // Opcional: apagar flag de animación de recarga si la añades
-        // enemy.enemyAnimator?.SetReload(false);
     }
 }

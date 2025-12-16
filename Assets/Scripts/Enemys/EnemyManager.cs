@@ -54,6 +54,24 @@ public class EnemyManager : MonoBehaviour {
     [HideInInspector] public float lastCoverDecisionTime;
     [HideInInspector] public Transform lastThreat;
 
+    [Header("Melee")]
+    public bool canUseMelee = true;
+    public float meleeTriggerDistance = 2f;
+    public float meleeRange = 1.4f;
+    public float meleeHitRadius = 0.65f;
+    public float meleeForwardOffset = 0.9f;
+    [Range(0f, 180f)] public float meleeAngle = 110f;
+    public float meleeDamage = 18f;
+    public float meleeCooldown = 2f;
+    public float meleeFailSafeSeconds = 1.5f;
+    public LayerMask meleeHitMask = ~0;
+
+    public bool IsInMelee { get; private set; }
+    public float ShootBlockedUntil { get; private set; }
+    public float postMeleeShootBlockSeconds = 0.15f;
+
+    [HideInInspector] public float lastMeleeTime;
+
     [Header("Combate: colisiones y strafe")]
     public bool canStrafe = true;
     public LayerMask combatObstacleMask = ~0;
@@ -104,6 +122,9 @@ public class EnemyManager : MonoBehaviour {
     public bool debugDrawTurnLines = true;
     public bool debugDrawLookPoints = false;
     public bool debugDrawHearingRange = true;
+    public bool debugDrawMeleeTrigger = true;
+    public bool debugDrawMeleeHit = true;
+    public bool debugDrawMeleeAngle = true;
 
     public Color debugColorDetection = Color.yellow;
     public Color debugColorAttack = Color.cyan;
@@ -114,6 +135,9 @@ public class EnemyManager : MonoBehaviour {
     public Color debugColorTurnLines = Color.magenta;
     public Color debugColorLookPoints = Color.green;
     public Color debugColorHearing = new Color(1f, 0.5f, 0f, 0.5f);
+    public Color debugColorMeleeTrigger = new Color(1f, 0.2f, 0.2f, 1f);
+    public Color debugColorMeleeHit = new Color(1f, 0.6f, 0.1f, 1f);
+    public Color debugColorMeleeAngle = new Color(1f, 0.9f, 0.2f, 1f);
 
     [Header("Dependencias (auto)")]
     public SphereCollider visionCollider;
@@ -136,9 +160,12 @@ public class EnemyManager : MonoBehaviour {
     readonly InvestigateNoiseState investigateNoiseState = new InvestigateNoiseState();
     readonly CoverState coverState = new CoverState();
     readonly ReloadState reloadState = new ReloadState();
+    readonly MeleeState meleeState = new MeleeState();
 
     Vector3 _spawnPos;
     float _aiTickTimer;
+
+    bool _meleeHitConsumed;
 
     void OnValidate() {
         if (!visionCollider) visionCollider = GetComponent<SphereCollider>();
@@ -167,7 +194,6 @@ public class EnemyManager : MonoBehaviour {
 
     void Awake() {
         _spawnPos = transform.position;
-
         if (applyOnAwake && archetype) ApplyArchetype();
         unit?.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
         _health = GetComponent<Health>();
@@ -226,19 +252,29 @@ public class EnemyManager : MonoBehaviour {
         currentState?.Enter(this);
     }
 
-    void OnDiedHandler() {
-        ReleaseCover();
+    public void SetMeleeLock(bool value) {
+        IsInMelee = value;
+    }
 
+    public void BlockShooting(float seconds) {
+        float s = Mathf.Max(0f, seconds);
+        ShootBlockedUntil = Mathf.Max(ShootBlockedUntil, Time.time + s);
+    }
+    void OnDiedHandler() {
+        SetMeleeLock(false);
+        ShootBlockedUntil = 0f;
+        ReleaseCover();
         currentState?.Exit(this);
         currentState = null;
-
         unit?.StopFollowing();
-
         if (shooter) shooter.enabled = false;
         if (enemyAnimator) enemyAnimator.enabled = false;
     }
 
     public void ResetForRespawn(Vector3 position, Quaternion rotation) {
+        SetMeleeLock(false);
+        ShootBlockedUntil = 0f;
+
         ReleaseCover();
 
         transform.SetPositionAndRotation(position, rotation);
@@ -253,6 +289,8 @@ public class EnemyManager : MonoBehaviour {
         runtimeAnchor = null;
 
         _aiTickTimer = 0f;
+        lastMeleeTime = -999f;
+        _meleeHitConsumed = false;
 
         if (shooter) shooter.enabled = true;
         if (enemyAnimator) enemyAnimator.enabled = true;
@@ -284,6 +322,7 @@ public class EnemyManager : MonoBehaviour {
     public void GoToAttack() => TransitionTo(attackState);
     public void GoToWander() => TransitionTo(wanderState);
     public void GoToReload() => TransitionTo(reloadState);
+    public void GoToMelee() => TransitionTo(meleeState);
 
     void OnTriggerEnter(Collider other) {
         if (!other.CompareTag("Player")) return;
@@ -405,45 +444,27 @@ public class EnemyManager : MonoBehaviour {
         lastThreat = attacker;
         lastUnderFireTime = Time.time;
 
-        // DEBUG opcional para ver que realmente entra aquí
-        Debug.Log($"{name} OnHit: health01={currentHealthNormalized:F2}, attacker={attacker}");
-
         if (!canUseCover) return;
         if (attacker == null) return;
         if (currentLOD == EnemyAILOD.Low) return;
 
-        // Evita spamear decisiones de cover
         if (Time.time - lastCoverDecisionTime < coverRetryCooldown) return;
 
         bool lowHealth = currentHealthNormalized <= coverLowHealthThreshold;
         bool underFire = (Time.time - lastUnderFireTime) <= coverUnderFireWindow;
 
-        // DEBUG opcional
-        Debug.Log($"{name} Cover check -> lowHealth={lowHealth}, underFire={underFire}");
-
-        // Si no está con poca vida NI bajo fuego reciente, no pide cover
         if (!lowHealth && !underFire) return;
 
-        // Probabilidad de decidir ir a cover
         if (Random.value > coverChanceOnHit) {
             lastCoverDecisionTime = Time.time;
-            Debug.Log($"{name} decidió NO ir a cover (falló probabilidad).");
             return;
         }
 
-        if (CoverManager.Instance == null) {
-            Debug.LogWarning($"{name}: No hay CoverManager en la escena.");
-            return;
-        }
+        if (CoverManager.Instance == null) return;
 
         CoverPoint best;
-        if (!CoverManager.Instance.TryFindBestCover(
-            transform.position,
-            attacker.position,
-            coverMaxSearchRadius,
-            out best)) {
+        if (!CoverManager.Instance.TryFindBestCover(transform.position, attacker.position, coverMaxSearchRadius, out best)) {
             lastCoverDecisionTime = Time.time;
-            Debug.Log($"{name}: no encontró cover dentro de radio {coverMaxSearchRadius}.");
             return;
         }
 
@@ -455,9 +476,80 @@ public class EnemyManager : MonoBehaviour {
         currentCover.Reserve(this);
 
         lastCoverDecisionTime = Time.time;
-
-        Debug.Log($"{name} -> yendo a cover: {currentCover.name}");
         GoToCover();
+    }
+
+    public bool CanStartMelee(float distToTarget) {
+        if (!canUseMelee) return false;
+        if (currentLOD == EnemyAILOD.Low) return false;
+        if (currentTarget == null) return false;
+        if (distToTarget > meleeTriggerDistance) return false;
+        if (Time.time - lastMeleeTime < meleeCooldown) return false;
+        return true;
+    }
+
+    public void BeginMeleeSwing() {
+        lastMeleeTime = Time.time;
+        _meleeHitConsumed = false;
+        unit?.StopFollowing();
+    }
+
+    public void OnMeleeHitEvent() {
+        if (currentState != meleeState) return;
+        if (_meleeHitConsumed) return;
+        _meleeHitConsumed = true;
+        PerformMeleeHit();
+    }
+
+    public void OnMeleeFinishedEvent() {
+        if (currentState != meleeState) return;
+
+        if (currentTarget) {
+            float dist = Vector3.Distance(transform.position, currentTarget.position);
+            if (dist <= attackRange && HasLineOfSight(currentTarget, attackRange + 1f)) GoToAttack();
+            else GoToChase();
+        }
+        else {
+            GoToPatrol();
+        }
+    }
+
+    void PerformMeleeHit() {
+        if (currentTarget == null) return;
+
+        Vector3 toT = currentTarget.position - transform.position;
+        toT.y = 0f;
+        if (toT.sqrMagnitude < 1e-5f) return;
+
+        float ang = Vector3.Angle(transform.forward, toT.normalized);
+        if (ang > meleeAngle * 0.5f) return;
+
+        Vector3 origin = transform.position + Vector3.up * 1.2f + transform.forward * meleeForwardOffset;
+        Collider[] hits = Physics.OverlapSphere(origin, Mathf.Max(0.01f, meleeHitRadius), meleeHitMask, QueryTriggerInteraction.Ignore);
+
+        for (int i = 0; i < hits.Length; i++) {
+            Collider c = hits[i];
+            if (!c) continue;
+
+            Transform t = c.transform;
+            bool isPlayer = false;
+            while (t != null) {
+                if (t.CompareTag("Player")) { isPlayer = true; break; }
+                t = t.parent;
+            }
+            if (!isPlayer) continue;
+
+            Vector3 hp = c.ClosestPoint(origin);
+            var info = new DamageInfo(meleeDamage, DamageType.Melee, transform, hp, -transform.forward);
+
+            Hitbox hb = c.GetComponent<Hitbox>();
+            if (hb) hb.ApplyHit(info);
+            else {
+                Health h = c.GetComponentInParent<Health>();
+                if (h) h.ApplyDamage(info);
+            }
+            return;
+        }
     }
 
     void OnDrawGizmosSelected() {
@@ -494,6 +586,35 @@ public class EnemyManager : MonoBehaviour {
         if (debugDrawHearingRange && enableHearing) {
             Gizmos.color = debugColorHearing;
             Gizmos.DrawWireSphere(transform.position, hearingRange);
+        }
+
+        if (canUseMelee) {
+            float yOff = 1.2f;
+            Vector3 basePos = transform.position + Vector3.up * yOff;
+
+            if (debugDrawMeleeTrigger) {
+                Gizmos.color = debugColorMeleeTrigger;
+                Gizmos.DrawWireSphere(transform.position, Mathf.Max(0.01f, meleeTriggerDistance));
+            }
+
+            if (debugDrawMeleeHit) {
+                Gizmos.color = debugColorMeleeHit;
+                Vector3 hitOrigin = basePos + transform.forward * meleeForwardOffset;
+                Gizmos.DrawWireSphere(hitOrigin, Mathf.Max(0.01f, meleeHitRadius));
+                Gizmos.DrawLine(basePos, hitOrigin);
+            }
+
+            if (debugDrawMeleeAngle) {
+                Gizmos.color = debugColorMeleeAngle;
+                float len = Mathf.Max(0.01f, meleeTriggerDistance);
+
+                Vector3 left = Quaternion.Euler(0f, -meleeAngle * 0.5f, 0f) * transform.forward;
+                Vector3 right = Quaternion.Euler(0f, meleeAngle * 0.5f, 0f) * transform.forward;
+
+                Gizmos.DrawLine(basePos, basePos + transform.forward * len);
+                Gizmos.DrawLine(basePos, basePos + left * len);
+                Gizmos.DrawLine(basePos, basePos + right * len);
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+
 public class EnemyShooter : ShooterBase {
     [Header("Line of Fire")]
     public LayerMask lineOfFireMask = ~0;
@@ -6,10 +7,61 @@ public class EnemyShooter : ShooterBase {
 
     public bool LastShotBlockedByAlly { get; private set; }
 
+    [Header("Ammo / Reload")]
+    public bool useAmmo = true;
+    public int clipSize = 10;
+    public int currentAmmo = -1;
+    public float reloadDuration = 2.0f;
+    public bool autoReload = true;
+
+    [SerializeField]
+    private bool isReloading = false;
+
+    private float reloadTimer = 0f;
+
+    [Header("Refs opcionales")]
+    public EnemyAnimator enemyAnimator;
+
+    public bool IsReloading => isReloading;
+    public bool IsMagazineEmpty => currentAmmo <= 0;
+    EnemyManager manager;
+
+    void Awake() {
+        if (!enemyAnimator) enemyAnimator = GetComponent<EnemyAnimator>();
+
+        if (currentAmmo <= 0)
+            currentAmmo = clipSize;
+       
+    }
+
+    protected override void Update() {
+        base.Update();
+
+        if (isReloading) {
+            reloadTimer -= Time.deltaTime;
+            if (reloadTimer <= 0f) {
+                FinishReload();
+            }
+        }
+    }
+
     public void TryShoot(Transform target) {
         LastShotBlockedByAlly = false;
+
+        var m = manager != null ? manager : (manager = GetComponent<EnemyManager>());
+        if (m != null) {
+            if (m.IsInMelee) return;
+            if (Time.time < m.ShootBlockedUntil) return;
+        }
+
+        if (isReloading) return;
         if (!target || !firePoint) return;
         if (!CanShoot()) return;
+
+        if (useAmmo && currentAmmo <= 0) {
+            if (autoReload) StartReload();
+            return;
+        }
 
         Vector3 toTarget = target.position - firePoint.position;
         float dist = toTarget.magnitude;
@@ -19,6 +71,11 @@ public class EnemyShooter : ShooterBase {
 
         Fire(toTarget.normalized, transform);
         ResetShootTimer();
+
+        if (useAmmo) {
+            currentAmmo = Mathf.Max(0, currentAmmo - 1);
+            if (currentAmmo <= 0 && autoReload) StartReload();
+        }
     }
 
     bool HasSafeLineOfFire(Transform target, float maxDistance) {
@@ -44,5 +101,27 @@ public class EnemyShooter : ShooterBase {
         }
 
         return true;
+    }
+
+    public void StartReload() {
+        if (isReloading) return;
+
+        isReloading = true;
+        reloadTimer = reloadDuration;
+
+        if (enemyAnimator != null) {
+            enemyAnimator.PlayReload();
+        }
+    }
+
+    void FinishReload() {
+        isReloading = false;
+        currentAmmo = clipSize;
+    }
+
+    public void ForceInstantReload() {
+        isReloading = false;
+        reloadTimer = 0f;
+        currentAmmo = clipSize;
     }
 }
