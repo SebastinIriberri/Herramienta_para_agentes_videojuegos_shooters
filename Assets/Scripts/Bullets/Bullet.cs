@@ -58,7 +58,6 @@ public class Bullet : MonoBehaviour
         if (!col) col = gameObject.AddComponent<SphereCollider>();
         if (col.radius <= 0f) col.radius = 0.05f;
 
-        // Trigger para hitboxes, pero OJO: el sweep se encarga de paredes/colisiones rápidas
         col.isTrigger = true;
     }
 
@@ -78,7 +77,6 @@ public class Bullet : MonoBehaviour
             if (layer >= 0) gameObject.layer = layer;
         }
 
-        // Ignorar colisiones con el owner
         if (owner != null)
         {
             var ownerColliders = owner.GetComponentsInChildren<Collider>();
@@ -101,7 +99,6 @@ public class Bullet : MonoBehaviour
     {
         if (!spawned) return;
 
-        // Sweep desde lastPos hasta currentPos
         Vector3 currentPos = transform.position;
         Vector3 delta = currentPos - lastPos;
         float dist = delta.magnitude;
@@ -111,17 +108,15 @@ public class Bullet : MonoBehaviour
             Vector3 dir = delta / dist;
             QueryTriggerInteraction qti = sweepIgnoreTriggers ? QueryTriggerInteraction.Ignore : QueryTriggerInteraction.Collide;
 
-            // SphereCast para no atravesar
+          
             if (Physics.SphereCast(lastPos, col.radius, dir, out RaycastHit hit, dist, sweepMask, qti))
             {
-                // Evita autohit
+              
                 if (owner != null && hit.transform.IsChildOf(owner))
                 {
                     lastPos = currentPos;
                     return;
                 }
-
-                // Procesa el hit como si fuera trigger/collision
                 HandleHit(hit.collider, hit.point, hit.normal);
                 return;
             }

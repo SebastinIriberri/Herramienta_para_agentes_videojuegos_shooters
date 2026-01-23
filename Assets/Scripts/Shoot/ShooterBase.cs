@@ -89,20 +89,19 @@ public abstract class ShooterBase : MonoBehaviour
         if (!Physics.Raycast(origin, worldDirection, out RaycastHit hit, maxDist, raycastMask, qti))
             return;
 
-        // Ignorar self / owner
         if (ownerToIgnore != null && hit.transform.IsChildOf(ownerToIgnore))
             return;
 
-        // Construir DamageInfo (igual que tus balas)
+       
         var info = new DamageInfo(
             raycastDamage,
-            DamageType.Bullet,             // o Generic si prefieres
+            DamageType.Bullet,            
             ownerToIgnore ? ownerToIgnore : transform,
             hit.point,
             hit.normal
         );
 
-        // 1) Hitbox (headshot etc.)
+      
         Hitbox hb = hit.collider.GetComponent<Hitbox>();
         if (hb != null)
         {
@@ -110,7 +109,7 @@ public abstract class ShooterBase : MonoBehaviour
             return;
         }
 
-        // 2) Health en el objeto o en padres
+       
         Health hp = hit.collider.GetComponentInParent<Health>();
         if (hp != null)
         {
@@ -118,8 +117,6 @@ public abstract class ShooterBase : MonoBehaviour
             return;
         }
 
-        // Debug opcional
-        // Debug.Log($"[ShooterBase] Raycast hit {hit.collider.name} pero no tiene Hitbox ni Health.");
     }
 
     void PlayShootSfx()

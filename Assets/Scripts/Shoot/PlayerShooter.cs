@@ -57,7 +57,7 @@ public class PlayerShooter : ShooterBase
 
     public void SetFiring(bool firing) => isFiring = firing;
 
-    // Llamado por PlayerController cuando presiona R
+   
     public void RequestReload()
     {
         if (!useAmmo) return;
@@ -73,7 +73,7 @@ public class PlayerShooter : ShooterBase
     {
         if (!isFiring) return;
         if (!firePoint) return;
-        if (isReloading) return;           // BLOQUEO por recarga
+        if (isReloading) return;         
         if (!CanShoot()) return;
 
         if (useAmmo)
@@ -89,7 +89,6 @@ public class PlayerShooter : ShooterBase
         if (spreadDegrees > 0f)
             dir = ApplySpread(dir, spreadDegrees);
 
-        // Disparo real (raycast o projectile según tu fireMode)
         Fire(dir, owner);
         ResetShootTimer();
 
@@ -99,7 +98,6 @@ public class PlayerShooter : ShooterBase
             if (currentAmmo <= 0 && autoReload) StartReload();
         }
 
-        // Animación de disparo
         if (animator) animator.SetTrigger(fireHash);
 
         NoiseSystem.EmitNoise(firePoint.position, noiseRadius, NoiseType.Gunshot, owner);
