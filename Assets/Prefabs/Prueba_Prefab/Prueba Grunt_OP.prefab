@@ -2291,7 +2291,7 @@ MonoBehaviour:
   lastUnderFireTime: 0
   lastCoverDecisionTime: 0
   lastThreat: {fileID: 0}
-  canUseMelee: 1
+  canUseMelee: 0
   meleeTriggerDistance: 2
   meleeRange: 1.4
   meleeHitRadius: 0.65
@@ -2476,6 +2476,7 @@ MonoBehaviour:
   maxHealth: 100
   startHealth: 100
   isDead: 0
+  currentHealthDebug: 0
   invulnerabilitySeconds: 0.2
   autoRegen: 0
   regenDelay: 3

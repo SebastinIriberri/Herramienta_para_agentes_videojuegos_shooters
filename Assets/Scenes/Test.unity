@@ -1560,6 +1560,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1400281768}
+    - targetCorrespondingSourceObject: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1400281769}
   m_SourcePrefab: {fileID: 100100000, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
 --- !u!4 &453800042 stripped
 Transform:
@@ -4258,7 +4261,7 @@ MonoBehaviour:
   startHealth: 100
   isDead: 0
   currentHealthDebug: 0
-  invulnerabilitySeconds: 0.2
+  invulnerabilitySeconds: 0
   autoRegen: 0
   regenDelay: 3
   regenRate: 5
@@ -4275,6 +4278,25 @@ MonoBehaviour:
   onDied:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &1400281769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1400281760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fab40eaa4e1285542af3f4330fccb86d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 1400281767}
+  deathTriggerName: Death
+  deathStateName: Rifle Death
+  extraDelay: 0.1
+  disablePlayerController: 1
+  disableShooter: 1
+  deactivateAfterAnimation: 0
 --- !u!1 &1466477335
 GameObject:
   m_ObjectHideFlags: 0
