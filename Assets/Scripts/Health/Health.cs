@@ -1,12 +1,16 @@
 using UnityEngine;
 using UnityEngine.Events;
 using System;
-using System.Collections;
-public class Health : MonoBehaviour {
+
+public class Health : MonoBehaviour
+{
     [Header("Vida")]
     public float maxHealth = 100f;
     public float startHealth = 0f;
     [SerializeField] private bool isDead = false;
+
+    [SerializeField, Tooltip("Solo lectura (debug)")]
+    private float currentHealthDebug;
 
     [Header("Invulnerabilidad")]
     [Min(0f)] public float invulnerabilitySeconds = 0.2f;
@@ -37,39 +41,55 @@ public class Health : MonoBehaviour {
     float _invulnTimer = 0f;
     float _sinceLastDamage = 0f;
 
-    void Awake() {
+    void Awake()
+    {
         CurrentHealth = (startHealth > 0f) ? Mathf.Min(startHealth, maxHealth) : maxHealth;
         isDead = CurrentHealth <= 0f;
         _invulnTimer = 0f;
         _sinceLastDamage = 0f;
+
+        currentHealthDebug = CurrentHealth;
+
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
     }
 
-    void Update() {
+    void Update()
+    {
         if (_invulnTimer > 0f) _invulnTimer -= Time.deltaTime;
         if (!isDead) _sinceLastDamage += Time.deltaTime;
 
-        if (autoRegen && !isDead && _sinceLastDamage >= regenDelay && CurrentHealth < maxHealth) {
+        if (autoRegen && !isDead && _sinceLastDamage >= regenDelay && CurrentHealth < maxHealth)
+        {
             float before = CurrentHealth;
             CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + regenRate * Time.deltaTime);
-            if (CurrentHealth > before) {
+
+            if (CurrentHealth > before)
+            {
+                currentHealthDebug = CurrentHealth;
+
                 onHealed?.Invoke();
                 OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
             }
         }
     }
 
-    public void ApplyDamage(DamageInfo info) {
+    public void ApplyDamage(DamageInfo info)
+    {
         if (isDead || _invulnTimer > 0f) return;
 
         float before = CurrentHealth;
         CurrentHealth = Mathf.Max(0f, CurrentHealth - Mathf.Max(0f, info.amount));
+
+        currentHealthDebug = CurrentHealth;
+
         _sinceLastDamage = 0f;
         _invulnTimer = invulnerabilitySeconds;
 
-        if (CurrentHealth < before) {
+        if (CurrentHealth < before)
+        {
             var enemy = GetComponent<EnemyManager>();
-            if (enemy != null && CurrentHealth > 0f) {
+            if (enemy != null && CurrentHealth > 0f)
+            {
                 float normalized = GetHealth01();
                 Transform attacker = info.source;
                 enemy.OnHit(attacker, normalized);
@@ -82,29 +102,40 @@ public class Health : MonoBehaviour {
         if (CurrentHealth <= 0f) Die(info);
     }
 
-    public void Heal(float amount) {
+    public void Heal(float amount)
+    {
         if (isDead || amount <= 0f) return;
+
         float before = CurrentHealth;
         CurrentHealth = Mathf.Min(maxHealth, CurrentHealth + amount);
-        if (CurrentHealth > before) {
+
+        if (CurrentHealth > before)
+        {
+            currentHealthDebug = CurrentHealth;
+
             onHealed?.Invoke();
             OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
         }
     }
 
-    public void Kill(DamageInfo cause) {
+    public void Kill(DamageInfo cause)
+    {
         if (isDead) return;
         CurrentHealth = 0f;
+        currentHealthDebug = CurrentHealth;
         Die(cause);
     }
 
-    void Die(DamageInfo cause) {
+    void Die(DamageInfo cause)
+    {
         if (isDead) return;
+
         isDead = true;
         onDied?.Invoke();
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);
 
-        if (usePooling && enemyPool != null) {
+        if (usePooling && enemyPool != null)
+        {
             enemyPool.Despawn(gameObject);
             return;
         }
@@ -113,14 +144,19 @@ public class Health : MonoBehaviour {
             Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
     }
 
-    void DeactivateSelf() {
+    void DeactivateSelf()
+    {
         gameObject.SetActive(false);
     }
 
-    public void ResetForRespawn() {
+    public void ResetForRespawn()
+    {
         CancelInvoke(nameof(DeactivateSelf));
         isDead = false;
         CurrentHealth = maxHealth;
+
+        currentHealthDebug = CurrentHealth;
+
         _invulnTimer = 0f;
         _sinceLastDamage = 0f;
         OnHealthChanged?.Invoke(CurrentHealth, maxHealth);

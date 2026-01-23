@@ -82,6 +82,14 @@ public class PlayerController : MonoBehaviour {
         ApplyCursorState();
     }
 
+    public void OnReload(InputAction.CallbackContext context)
+    {
+        if (!context.performed) return;
+        if (shooter == null) return;
+
+        shooter.RequestReload();
+    }
+
     void Awake() {
         anim = GetComponent<Animator>();
         controller = GetComponent<CharacterController>();

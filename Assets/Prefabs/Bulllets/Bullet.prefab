@@ -150,8 +150,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   settings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
-  hitMask:
+  projectileLayerName: Projectile
+  sweepMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  owner: {fileID: 0}
-  sweepRadius: 0.05
+  sweepIgnoreTriggers: 1

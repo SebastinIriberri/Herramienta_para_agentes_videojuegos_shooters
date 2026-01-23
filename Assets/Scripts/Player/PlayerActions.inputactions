@@ -990,6 +990,34 @@
                     "isPartOfComposite": false
                 }
             ]
+        },
+        {
+            "name": "Reload",
+            "id": "9e6fe843-8ac3-4331-a5c1-ce789d4f86e0",
+            "actions": [
+                {
+                    "name": "Reload",
+                    "type": "Button",
+                    "id": "b587c25d-2502-4e02-8a72-c04d0c3e1fc8",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "d12b8989-4054-4f48-9255-52474acfcfd8",
+                    "path": "<Keyboard>/r",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";Keyboard&Mouse",
+                    "action": "Reload",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": [

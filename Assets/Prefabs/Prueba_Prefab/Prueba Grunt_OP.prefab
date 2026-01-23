@@ -2151,7 +2151,7 @@ GameObject:
   - component: {fileID: 5904610521211033309}
   m_Layer: 10
   m_Name: Prueba Grunt_OP
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2345,6 +2345,9 @@ MonoBehaviour:
   debugDrawTurnLines: 1
   debugDrawLookPoints: 0
   debugDrawHearingRange: 1
+  debugDrawMeleeTrigger: 1
+  debugDrawMeleeHit: 1
+  debugDrawMeleeAngle: 1
   debugColorDetection: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   debugColorAttack: {r: 0, g: 1, b: 1, a: 1}
   debugColorViewCone: {r: 1, g: 0, b: 0, a: 1}
@@ -2354,6 +2357,9 @@ MonoBehaviour:
   debugColorTurnLines: {r: 1, g: 0, b: 1, a: 1}
   debugColorLookPoints: {r: 0, g: 1, b: 0, a: 1}
   debugColorHearing: {r: 1, g: 0.5, b: 0, a: 0.5}
+  debugColorMeleeTrigger: {r: 1, g: 0.2, b: 0.2, a: 1}
+  debugColorMeleeHit: {r: 1, g: 0.6, b: 0.1, a: 1}
+  debugColorMeleeAngle: {r: 1, g: 0.9, b: 0.2, a: 1}
   visionCollider: {fileID: 4824400384502189754}
   bodyCollider: {fileID: 2753258411640126878}
   rb: {fileID: 9201478680199028297}
@@ -2399,14 +2405,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ef452169a641564abdf4052cbe4c2ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fireMode: 0
   firePoint: {fileID: 2758340365036178606}
-  bulletPool: {fileID: 2909867757687788732, guid: 0cad732c26713a9488868c53d20300b5, type: 3}
-  bulletSettings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
   cooldownSeconds: 0.35
   fireRange: 25
   spawnOffset: 0.15
+  bulletPool: {fileID: 2909867757687788732, guid: 0cad732c26713a9488868c53d20300b5, type: 3}
+  bulletSettings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
+  raycastMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  raycastDamage: 10
+  raycastIgnoreTriggers: 1
   shootSound: {fileID: 0}
-  shootTimer: 0
   lineOfFireMask:
     serializedVersion: 2
     m_Bits: 512
@@ -2463,7 +2474,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
-  startHealth: 0
+  startHealth: 100
   isDead: 0
   invulnerabilitySeconds: 0.2
   autoRegen: 0

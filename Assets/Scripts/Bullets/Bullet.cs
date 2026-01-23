@@ -2,14 +2,16 @@ using UnityEngine;
 
 public enum DamageType { Generic, Bullet, Explosion, Melee }
 
-public struct DamageInfo {
+public struct DamageInfo
+{
     public float amount;
     public DamageType type;
     public Transform source;
     public Vector3 hitPoint;
     public Vector3 hitNormal;
 
-    public DamageInfo(float amount, DamageType type, Transform source, Vector3 hitPoint, Vector3 hitNormal) {
+    public DamageInfo(float amount, DamageType type, Transform source, Vector3 hitPoint, Vector3 hitNormal)
+    {
         this.amount = amount;
         this.type = type;
         this.source = source;
@@ -18,56 +20,70 @@ public struct DamageInfo {
     }
 }
 
-public class Bullet : MonoBehaviour {
+public class Bullet : MonoBehaviour
+{
     [Header("Datos (flyweight)")]
     public BulletSettings settings;
 
     Rigidbody rb;
     SphereCollider col;
 
-    Transform owner;         // quién disparó (para ignorar sus colliders)
+    Transform owner;
     BulletPool pool;
     float lifeTimer;
 
     [Header("Opcional")]
-    [Tooltip("Capa de la bala para ajustar la matriz de colisiones si lo deseas.")]
+    [Tooltip("Capa de la bala para ajustar la matriz de colisiones.")]
     public string projectileLayerName = "Projectile";
 
-    void Awake() {
+    [Header("Sweep / Anti-tunneling")]
+    [Tooltip("Qué capas puede golpear la bala al hacer el 'sweep'. Pon aquí Default/Enemy/Unwalkable, etc.")]
+    public LayerMask sweepMask = ~0;
+
+    [Tooltip("Ignorar triggers en el sweep (recomendado).")]
+    public bool sweepIgnoreTriggers = true;
+
+    Vector3 lastPos;
+    bool spawned;
+
+    void Awake()
+    {
         rb = GetComponent<Rigidbody>();
         if (!rb) rb = gameObject.AddComponent<Rigidbody>();
         rb.useGravity = false;
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic; // preciso en alta velocidad
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
 
         col = GetComponent<SphereCollider>();
         if (!col) col = gameObject.AddComponent<SphereCollider>();
         if (col.radius <= 0f) col.radius = 0.05f;
 
-        // IMPORTANTE: trigger para evitar rebotes físicos y usar OnTriggerEnter
+        // Trigger para hitboxes, pero OJO: el sweep se encarga de paredes/colisiones rápidas
         col.isTrigger = true;
     }
 
-    /// <summary>Inicializa y lanza la bala. Llamado desde ShooterBase.Fire(...)</summary>
-    public void Spawn(BulletPool poolOwner, BulletSettings cfg, Vector3 position, Vector3 direction, Transform shooterOwner, float initialSpeedOverride = -1f) {
+    public void Spawn(BulletPool poolOwner, BulletSettings cfg, Vector3 position, Vector3 direction, Transform shooterOwner, float initialSpeedOverride = -1f)
+    {
         pool = poolOwner;
         settings = cfg;
         owner = shooterOwner;
 
         lifeTimer = (settings != null && settings.lifeTime > 0f) ? settings.lifeTime : 2f;
 
-        // Posición/rotación antes de activar
         transform.SetPositionAndRotation(position, Quaternion.LookRotation(direction, Vector3.up));
 
-        if (!string.IsNullOrEmpty(projectileLayerName)) {
+        if (!string.IsNullOrEmpty(projectileLayerName))
+        {
             int layer = LayerMask.NameToLayer(projectileLayerName);
             if (layer >= 0) gameObject.layer = layer;
         }
 
         // Ignorar colisiones con el owner
-        if (owner != null) {
+        if (owner != null)
+        {
             var ownerColliders = owner.GetComponentsInChildren<Collider>();
-            foreach (var oc in ownerColliders) {
+            foreach (var oc in ownerColliders)
+            {
                 if (oc && col) Physics.IgnoreCollision(col, oc, true);
             }
         }
@@ -75,67 +91,116 @@ public class Bullet : MonoBehaviour {
         float v = (initialSpeedOverride > 0f) ? initialSpeedOverride : (settings ? settings.speed : 20f);
         rb.linearVelocity = direction.normalized * v;
 
-        gameObject.SetActive(true); // Activar al final
+        lastPos = transform.position;
+        spawned = true;
+
+        gameObject.SetActive(true);
     }
 
-    void Update() {
-        lifeTimer -= Time.deltaTime;
-        if (lifeTimer <= 0f) {
-            Recycle();
+    void FixedUpdate()
+    {
+        if (!spawned) return;
+
+        // Sweep desde lastPos hasta currentPos
+        Vector3 currentPos = transform.position;
+        Vector3 delta = currentPos - lastPos;
+        float dist = delta.magnitude;
+
+        if (dist > 0.0001f)
+        {
+            Vector3 dir = delta / dist;
+            QueryTriggerInteraction qti = sweepIgnoreTriggers ? QueryTriggerInteraction.Ignore : QueryTriggerInteraction.Collide;
+
+            // SphereCast para no atravesar
+            if (Physics.SphereCast(lastPos, col.radius, dir, out RaycastHit hit, dist, sweepMask, qti))
+            {
+                // Evita autohit
+                if (owner != null && hit.transform.IsChildOf(owner))
+                {
+                    lastPos = currentPos;
+                    return;
+                }
+
+                // Procesa el hit como si fuera trigger/collision
+                HandleHit(hit.collider, hit.point, hit.normal);
+                return;
+            }
         }
+
+        lastPos = currentPos;
     }
 
-    // Requiere que esta bala (o el otro) tenga collider trigger (nosotros sí)
-    void OnTriggerEnter(Collider other) {
-        // Evita autocolisión si algo no se ignoró correctamente
+    void Update()
+    {
+        lifeTimer -= Time.deltaTime;
+        if (lifeTimer <= 0f) Recycle();
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        // Por si pega con hitboxes triggers (enemigos)
         if (owner != null && other.transform.IsChildOf(owner)) return;
 
-        // 1) Si hay Hitbox, aplica con multiplicadores/eventos propios del hitbox
-        // Ajusta el nombre de la clase si tu script es "HitBox"
+        HandleHit(other, transform.position, -transform.forward);
+    }
+
+    void HandleHit(Collider other, Vector3 hitPoint, Vector3 hitNormal)
+    {
+        // DEBUG (opcional)
+        Debug.Log($"[Bullet] Hit -> {other.name} | Layer: {LayerMask.LayerToName(other.gameObject.layer)} | IsTrigger: {other.isTrigger}");
+
+        // 1) Hitbox
         Hitbox hb = other.GetComponent<Hitbox>();
-        if (hb) {
+        if (hb)
+        {
             hb.ApplyHit(new DamageInfo(
                 settings ? settings.damage : 10f,
                 DamageType.Bullet,
                 owner,
-                transform.position,
-                -transform.forward
+                hitPoint,
+                hitNormal
             ));
             Recycle();
             return;
         }
 
-        // 2) Si no hay Hitbox, intenta dañar por Health en el objeto o sus padres
+        // 2) Health en el objeto o en padres
         Health hp = other.GetComponentInParent<Health>();
-        if (hp) {
+        if (hp)
+        {
             hp.ApplyDamage(new DamageInfo(
                 settings ? settings.damage : 10f,
                 DamageType.Bullet,
                 owner,
-                transform.position,
-                -transform.forward
+                hitPoint,
+                hitNormal
             ));
             Recycle();
             return;
         }
 
-        // 3) Si tocamos cualquier cosa no-trigger (pared/obstáculo), reciclamos
-        if (!other.isTrigger) {
+        // 3) Si no tiene nada, igual reciclamos si es “sólido”
+        if (!other.isTrigger)
+        {
             Recycle();
         }
     }
 
-    void Recycle() {
+    void Recycle()
+    {
         // Dejar de ignorar al owner
-        if (owner != null) {
+        if (owner != null)
+        {
             var ownerColliders = owner.GetComponentsInChildren<Collider>();
-            foreach (var oc in ownerColliders) {
+            foreach (var oc in ownerColliders)
+            {
                 if (oc && col) Physics.IgnoreCollision(col, oc, false);
             }
         }
 
         rb.linearVelocity = Vector3.zero;
-        owner = null; // limpieza defensiva
+        owner = null;
+        spawned = false;
 
         if (pool) pool.ReturnBullet(gameObject);
         else gameObject.SetActive(false);
