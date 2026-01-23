@@ -252,7 +252,7 @@ Transform:
   m_GameObject: {fileID: 25682400}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: -1.5}
+  m_LocalPosition: {x: 0, y: 2, z: -21.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1116,7 +1116,7 @@ Transform:
   m_GameObject: {fileID: 390065345}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: -1.5}
+  m_LocalPosition: {x: 0, y: 2, z: -21.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1247,7 +1247,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3180820496333758467, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -20
       objectReference: {fileID: 0}
     - target: {fileID: 3180820496333758467, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1282,6 +1282,10 @@ PrefabInstance:
       value: Player_Character_3D
       objectReference: {fileID: 0}
     - target: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
@@ -1305,13 +1309,16 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 1400281764}
+    - targetCorrespondingSourceObject: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 1400281761}
     - targetCorrespondingSourceObject: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1400281762}
     - targetCorrespondingSourceObject: {fileID: 4002244553392487835, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1400281764}
+      addedObject: {fileID: 1400281766}
   m_SourcePrefab: {fileID: 100100000, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
 --- !u!4 &453800042 stripped
 Transform:
@@ -2636,14 +2643,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1ef452169a641564abdf4052cbe4c2ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fireMode: 0
   firePoint: {fileID: 0}
-  bulletPool: {fileID: 0}
-  bulletSettings: {fileID: 0}
   cooldownSeconds: 0.35
   fireRange: 25
   spawnOffset: 0.15
+  bulletPool: {fileID: 0}
+  bulletSettings: {fileID: 0}
+  raycastMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  raycastDamage: 10
+  raycastIgnoreTriggers: 1
   shootSound: {fileID: 0}
-  shootTimer: 0
   lineOfFireMask:
     serializedVersion: 2
     m_Bits: 512
@@ -3463,12 +3475,15 @@ MonoBehaviour:
   laserActive: 1
   crosshair: {fileID: 1251801954}
   spine: {fileID: 1750586662}
+  shooter: {fileID: 1400281766}
   fireRate: 10
   damage: 10
   maxShootDistance: 200
   shootMask:
     serializedVersion: 2
-    m_Bits: 1024
+    m_Bits: 4294967295
+  fireTrigger: Fire
+  attackLayerIndex: 1
 --- !u!143 &1400281764
 CharacterController:
   m_ObjectHideFlags: 0
@@ -3494,6 +3509,33 @@ CharacterController:
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 1, z: 0}
+--- !u!114 &1400281766
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1400281760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3f4ad38e9dd51942938a9dce4f9dae2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fireMode: 0
+  firePoint: {fileID: 626174572}
+  cooldownSeconds: 0.25
+  fireRange: 25
+  spawnOffset: 0.15
+  bulletPool: {fileID: 774646240}
+  bulletSettings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
+  raycastMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  raycastDamage: 10
+  raycastIgnoreTriggers: 1
+  shootSound: {fileID: 1912937518}
+  spreadDegrees: 10
+  noiseRadius: 18
 --- !u!1 &1466477335
 GameObject:
   m_ObjectHideFlags: 0
@@ -5248,17 +5290,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3f4ad38e9dd51942938a9dce4f9dae2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  fireMode: 0
   firePoint: {fileID: 1860753642}
-  bulletPool: {fileID: 774646240}
-  bulletSettings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
   cooldownSeconds: 0.25
   fireRange: 12
   spawnOffset: 0.25
+  bulletPool: {fileID: 774646240}
+  bulletSettings: {fileID: 11400000, guid: e653f4d30fe6dcf4d825aca76e1272b6, type: 2}
+  raycastMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  raycastDamage: 10
+  raycastIgnoreTriggers: 1
   shootSound: {fileID: 38503996}
-  shootTimer: 0
-  fireButton: Fire1
   spreadDegrees: 0
-  debugGizmo: 1
   noiseRadius: 30
 --- !u!114 &919132149372966529
 MonoBehaviour:
@@ -7087,7 +7132,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5648909258223266382, guid: 00606d94fc96ca4438d6e18cfed8a96d, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

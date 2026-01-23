@@ -1,52 +1,35 @@
 using UnityEngine;
 
-public class PlayerShooter : ShooterBase{
-    [Header("Input")]
-    [Tooltip("Nombre del botón configurado en Input Manager (por defecto: Fire1).")]
-    public string fireButton = "Fire1";
-
+public class PlayerShooter : ShooterBase {
     [Header("Opcional")]
-    [Tooltip("Pequeña dispersión aleatoria en grados (0 = sin dispersión).")]
     [Range(0f, 10f)] public float spreadDegrees = 0f;
-
-    [Tooltip("Dibuja un rayo corto para verificar la dirección del firePoint.")]
-    public bool debugGizmo = true;
 
     [Header("Ruido")]
     public float noiseRadius = 18f;
 
-    protected override void Update() {
-        base.Update();
+    bool isFiring = false;
 
-        if (firePoint == null)
-            return;
+    public void SetFiring(bool firing) => isFiring = firing;
 
-        bool wantsFire = Input.GetButton(fireButton);
-        if (!wantsFire)
-            return;
+    public void TickShoot(Vector3 direction, Transform owner) {
+        if (!isFiring) return;
+        if (!firePoint) return;
+        if (!CanShoot()) return;
 
-        if (!CanShoot())
-            return;
+        Vector3 dir = direction;
 
-        Vector3 dir = firePoint.forward;
-
-        if (spreadDegrees > 0f) {
+        if (spreadDegrees > 0f)
             dir = ApplySpread(dir, spreadDegrees);
-        }
 
-        Fire(dir, transform);
+        Fire(dir, owner);
         ResetShootTimer();
 
-        NoiseSystem.EmitNoise(firePoint.position, noiseRadius, NoiseType.Gunshot, transform);
-
-        if (debugGizmo) {
-            Debug.DrawRay(firePoint.position, dir * 1.5f, Color.cyan, 0.1f);
-        }
+        NoiseSystem.EmitNoise(firePoint.position, noiseRadius, NoiseType.Gunshot, owner);
     }
 
     Vector3 ApplySpread(Vector3 baseDir, float degrees) {
         Quaternion randomYaw = Quaternion.AngleAxis(Random.Range(-degrees, degrees), Vector3.up);
         Quaternion randomPitch = Quaternion.AngleAxis(Random.Range(-degrees, degrees), Vector3.right);
-        return (randomYaw * randomPitch) * baseDir;
+        return (randomYaw * randomPitch) * baseDir.normalized;
     }
 }

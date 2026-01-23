@@ -26,16 +26,25 @@ public class PlayerController : MonoBehaviour {
     [Header("Bones")]
     [SerializeField] Transform spine;
 
+    [Header("Shooter Ref")]
+    [SerializeField] PlayerShooter shooter;
+
     [Header("Shooting")]
     [SerializeField] float fireRate = 10f;
     [SerializeField] int damage = 10;
     [SerializeField] float maxShootDistance = 200f;
     [SerializeField] LayerMask shootMask = ~0;
 
+    [Header("Shooting Animation")]
+    [SerializeField] string fireTrigger = "Fire";
+    [SerializeField] int attackLayerIndex = 1;
+
+
     Vector2 moveInput;
     Vector2 lookInput;
-
     Vector2 spineAngles;
+    int fireTriggerHash;
+    int attackingLayer;
     float yaw;
     float forwardSpeed;
 
@@ -51,8 +60,20 @@ public class PlayerController : MonoBehaviour {
     public void OnLook(InputAction.CallbackContext context) => lookInput = context.ReadValue<Vector2>();
 
     public void OnFire(InputAction.CallbackContext context) {
-        if (context.performed) isFiring = true;
-        if (context.canceled) isFiring = false;
+        if (shooter == null) {
+            Debug.LogWarning("[PlayerController] OnFire: shooter es NULL (no está asignado en el inspector).");
+            return;
+        }
+
+        if (context.performed) {
+            Debug.Log("[PlayerController] OnFire PERFORMED -> shooter.SetFiring(true)");
+            shooter.SetFiring(true);
+        }
+
+        if (context.canceled) {
+            Debug.Log("[PlayerController] OnFire CANCELED -> shooter.SetFiring(false)");
+            shooter.SetFiring(false);
+        }
     }
 
     public void OnESC(InputAction.CallbackContext context) {
@@ -65,6 +86,9 @@ public class PlayerController : MonoBehaviour {
         anim = GetComponent<Animator>();
         controller = GetComponent<CharacterController>();
         yaw = transform.eulerAngles.y;
+
+        fireTriggerHash = Animator.StringToHash(fireTrigger);
+        attackingLayer = anim.GetLayerIndex("Attacking");
     }
 
     void Start() {
@@ -98,7 +122,12 @@ public class PlayerController : MonoBehaviour {
 
         UpdateLaser();
 
-        if (isFiring) TryShoot();
+        if (shooter != null) {
+            Vector3 dir = laser != null ? laser.transform.forward : transform.forward;
+            if (Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame)
+                Debug.Log("[PlayerController] Update: TickShoot se llamaría (F presionada) - prueba.");
+            shooter.TickShoot(dir, transform);
+        }
     }
 
     void LateUpdate() {
@@ -116,6 +145,11 @@ public class PlayerController : MonoBehaviour {
 
         float interval = fireRate <= 0f ? 0.1f : (1f / fireRate);
         nextFireTime = Time.time + interval;
+
+        if (attackingLayer != -1) {
+            //anim.ResetTrigger(fireTriggerHash);    
+            anim.SetTrigger(fireTriggerHash);
+        }
 
         Vector3 origin = laser != null ? laser.transform.position : transform.position + Vector3.up;
         Vector3 dir = laser != null ? laser.transform.forward : transform.forward;
