@@ -12,7 +12,7 @@ public class EnemyAnimator : MonoBehaviour {
         animator = GetComponent<Animator>();
         unit = GetComponent<Unit>();
 
-        hashSpeed = Animator.StringToHash("Speed");
+        hashSpeed = Animator.StringToHash("ForwardSpeed");
         hashReload = Animator.StringToHash("Reload");
         hashMelee = Animator.StringToHash("Melee");
     }
