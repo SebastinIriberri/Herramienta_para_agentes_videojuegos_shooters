@@ -264,11 +264,19 @@ public class EnemyManager : MonoBehaviour {
         SetMeleeLock(false);
         ShootBlockedUntil = 0f;
         ReleaseCover();
+
+        if (enemyAnimator)
+        {
+           
+            enemyAnimator.PlayDeathBool(true);  
+        }
+
         currentState?.Exit(this);
         currentState = null;
+
         unit?.StopFollowing();
         if (shooter) shooter.enabled = false;
-        if (enemyAnimator) enemyAnimator.enabled = false;
+
     }
 
     public void ResetForRespawn(Vector3 position, Quaternion rotation) {

@@ -136,12 +136,19 @@ public class Health : MonoBehaviour
 
         if (usePooling && enemyPool != null)
         {
-            enemyPool.Despawn(gameObject);
+            Invoke(nameof(DespawnToPool), deathDeactivateDelay);
             return;
         }
 
         if (deactivateOnDeath)
             Invoke(nameof(DeactivateSelf), deathDeactivateDelay);
+    }
+
+
+    void DespawnToPool()
+    {
+        if (enemyPool != null)
+            enemyPool.Despawn(gameObject);
     }
 
     void DeactivateSelf()
@@ -151,6 +158,7 @@ public class Health : MonoBehaviour
 
     public void ResetForRespawn()
     {
+        CancelInvoke(nameof(DespawnToPool));
         CancelInvoke(nameof(DeactivateSelf));
         isDead = false;
         CurrentHealth = maxHealth;

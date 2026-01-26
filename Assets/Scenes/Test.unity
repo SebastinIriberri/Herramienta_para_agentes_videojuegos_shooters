@@ -252,7 +252,7 @@ Transform:
   m_GameObject: {fileID: 25682400}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: -21.5}
+  m_LocalPosition: {x: 16.1, y: 2, z: -21.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1354,7 +1354,7 @@ Transform:
   m_GameObject: {fileID: 390065345}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2, z: -21.5}
+  m_LocalPosition: {x: 16.1, y: 2, z: -21.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1477,7 +1477,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3180820496333758467, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 16.1
       objectReference: {fileID: 0}
     - target: {fileID: 3180820496333758467, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_LocalPosition.y
@@ -3308,6 +3308,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d21f2124ee522c24794410e8a0dd243c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  speedSmooth: 10
 --- !u!114 &1189568595
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4226,7 +4227,7 @@ MonoBehaviour:
   raycastMask:
     serializedVersion: 2
     m_Bits: 1024
-  raycastDamage: 10
+  raycastDamage: 100
   raycastIgnoreTriggers: 1
   shootSound: {fileID: 1912937518}
   spreadDegrees: 0
@@ -8123,6 +8124,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d21f2124ee522c24794410e8a0dd243c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  speedSmooth: 10
 --- !u!4 &7358631408071816471
 Transform:
   m_ObjectHideFlags: 0
@@ -8556,6 +8558,14 @@ PrefabInstance:
       propertyPath: enemyAnimator
       value: 
       objectReference: {fileID: 7172887375608453666}
+    - target: {fileID: 3826915313428857178, guid: 9ab66ef4a98b15746bcd03e86c04433f, type: 3}
+      propertyPath: deathDeactivateDelay
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 8536212165970361978, guid: 9ab66ef4a98b15746bcd03e86c04433f, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: efe49048f007cc545a07e5260f617df9, type: 2}
     - target: {fileID: 8895986140364810272, guid: 9ab66ef4a98b15746bcd03e86c04433f, type: 3}
       propertyPath: m_Name
       value: EnemySwat
