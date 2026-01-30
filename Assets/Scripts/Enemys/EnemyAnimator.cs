@@ -119,7 +119,7 @@ public class EnemyAnimator : MonoBehaviour
         SendMessage("OnMeleeEnd", SendMessageOptions.DontRequireReceiver);
 
         var m = GetComponent<EnemyManager>();
-        if (m != null) m.BlockShooting(m.postMeleeShootBlockSeconds);
+        if (m != null) m.OnMeleeFinishedEvent();
     }
 
     public void OnDeath_SetupAnimator()

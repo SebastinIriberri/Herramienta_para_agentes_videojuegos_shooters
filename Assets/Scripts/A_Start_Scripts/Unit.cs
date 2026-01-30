@@ -25,6 +25,9 @@ public class Unit : MonoBehaviour {
     public float CurrentSpeed { get; private set; }
     public bool HasReachedDestination { get; private set; }
 
+    bool _movementSuspended = false;
+    Transform _resumeTarget = null;
+
     Transform _followTarget;
     Vector3 _lastTargetPos;
     float _lastRepathTime;
@@ -63,6 +66,13 @@ public class Unit : MonoBehaviour {
         Vector3 targetPosOld = _followTarget ? _followTarget.position : Vector3.positiveInfinity;
 
         while (isActiveAndEnabled && gameObject.activeInHierarchy) {
+            if (_movementSuspended)
+            {
+                yield return null;
+                continue;
+            }
+
+
             yield return new WaitForSeconds(minPathUpdateTime);
 
             if (!_followTarget) continue;
@@ -106,6 +116,12 @@ public class Unit : MonoBehaviour {
         _stuckTimer = 0f;
 
         while (isActiveAndEnabled && gameObject.activeInHierarchy) {
+            if (_movementSuspended)
+            {
+                CurrentSpeed = 0f;
+                yield return null;
+                continue;
+            }
             Vector2 pos2D = new Vector2(transform.position.x, transform.position.z);
 
             while (path.turnBoundaries[pathIndex].HasCrossedLine(pos2D)) {
@@ -185,6 +201,33 @@ public class Unit : MonoBehaviour {
         CurrentSpeed = 0f;
         HasReachedDestination = true;
         _followTarget = null;
+    }
+
+    public void SuspendMovement(bool suspend)
+    {
+        _movementSuspended = suspend;
+
+        if (suspend)
+        {
+            // Guardamos target actual para reanudar luego
+            _resumeTarget = _followTarget;
+
+            // Detenemos corutinas de movimiento pero no "olvidamos" el target
+            if (_updatePathRoutine != null) { StopCoroutine(_updatePathRoutine); _updatePathRoutine = null; }
+            if (_followRoutine != null) { StopCoroutine(_followRoutine); _followRoutine = null; }
+            _followTarget = null;
+            CurrentSpeed = 0f;
+            HasReachedDestination = true;
+        }
+        else
+        {
+            // Reanudar si había target
+            if (_resumeTarget != null)
+            {
+                StartFollowing(_resumeTarget);
+                _resumeTarget = null;
+            }
+        }
     }
 
     public void OnDrawGizmos() {

@@ -5,7 +5,7 @@ public class MeleeState : IEnemyState {
 
     public void Enter(EnemyManager m) {
         m.SetMeleeLock(true);
-        m.unit?.StopFollowing();
+        m.unit?.SuspendMovement(true);
         m.BeginMeleeSwing();
         _failsafe = Mathf.Max(0.15f, m.meleeFailSafeSeconds);
         if (m.enemyAnimator != null) m.enemyAnimator.PlayMelee();
@@ -31,6 +31,6 @@ public class MeleeState : IEnemyState {
 
     public void Exit(EnemyManager m) {
         m.SetMeleeLock(false);
-        m.unit?.StopFollowing();
+        m.unit?.SuspendMovement(false);
     }
 }
