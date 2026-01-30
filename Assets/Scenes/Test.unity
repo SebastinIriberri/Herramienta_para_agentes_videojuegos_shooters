@@ -252,7 +252,7 @@ Transform:
   m_GameObject: {fileID: 25682400}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 16.1, y: 2, z: -21.5}
+  m_LocalPosition: {x: 26.19, y: 2, z: -21.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1354,7 +1354,7 @@ Transform:
   m_GameObject: {fileID: 390065345}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 16.1, y: 2, z: -21.5}
+  m_LocalPosition: {x: 26.19, y: 2, z: -21.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1477,7 +1477,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 3180820496333758467, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 16.1
+      value: 26.19
       objectReference: {fileID: 0}
     - target: {fileID: 3180820496333758467, guid: ab187265bc8183f48ac90eebf52b6512, type: 3}
       propertyPath: m_LocalPosition.y
@@ -8674,6 +8674,10 @@ PrefabInstance:
       propertyPath: enemyAnimator
       value: 
       objectReference: {fileID: 7172887375608453666}
+    - target: {fileID: 3826915313428857178, guid: 9ab66ef4a98b15746bcd03e86c04433f, type: 3}
+      propertyPath: deactivateOnDeath
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3826915313428857178, guid: 9ab66ef4a98b15746bcd03e86c04433f, type: 3}
       propertyPath: deathDeactivateDelay
       value: 5

@@ -267,8 +267,8 @@ public class EnemyManager : MonoBehaviour {
 
         if (enemyAnimator)
         {
-           
-            enemyAnimator.PlayDeathBool(true);  
+            enemyAnimator.OnDeath_SetupAnimator();
+            enemyAnimator.PlayDeath();  
         }
 
         currentState?.Exit(this);

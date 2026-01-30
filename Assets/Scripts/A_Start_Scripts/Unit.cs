@@ -97,8 +97,10 @@ public class Unit : MonoBehaviour {
 
         Vector3 firstDir = path.lookPoints[0] - transform.position;
         firstDir.y = 0f;
-        if (firstDir.sqrMagnitude > 0.0001f)
-            transform.rotation = Quaternion.LookRotation(firstDir.normalized, Vector3.up);
+        if (firstDir.sqrMagnitude > 0.0001f) { 
+            Quaternion r = Quaternion.LookRotation(firstDir.normalized, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, r, Time.deltaTime * turnSpeed);
+        }
 
         _lastPos = transform.position;
         _stuckTimer = 0f;
@@ -166,13 +168,13 @@ public class Unit : MonoBehaviour {
         var h = GetComponent<Health>();
         if (h != null && h.IsDead) return;
 
-        if (_followTarget == newTarget && Time.time - _lastRepathTime < repathCooldown) return;
+        // si es el mismo target, NO reinicies corutinas
+        if (_followTarget == newTarget) return;
 
         _followTarget = newTarget;
         HasReachedDestination = false;
 
         if (_updatePathRoutine != null) StopCoroutine(_updatePathRoutine);
-        if (_followRoutine != null) StopCoroutine(_followRoutine);
         _updatePathRoutine = StartCoroutine(UpdatePath());
     }
 
