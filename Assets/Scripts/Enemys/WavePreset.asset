@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WavePreset
   m_EditorClassIdentifier: 
   blocks:
-  - enemyId: grunt
+  - enemyId: swat
     count: 1
     startDelay: 0
     duration: 0
