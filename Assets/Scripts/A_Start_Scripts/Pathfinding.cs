@@ -80,7 +80,10 @@ public class Pathfinding : MonoBehaviour {
             currentNode = currentNode.parent;
         }
 
-        Vector3[] waypoints = SimplifyPath(path);
+        //Vector3[] waypoints = SimplifyPath(path);
+        Vector3[] waypoints = new Vector3[path.Count];
+        for (int i = 0; i < path.Count; i++)
+          waypoints[i] = path[i].wordPosition;
         Array.Reverse(waypoints);
         return waypoints;
     }

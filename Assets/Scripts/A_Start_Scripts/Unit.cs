@@ -37,7 +37,11 @@ public class Unit : MonoBehaviour {
 
     Coroutine _followRoutine;
     Coroutine _updatePathRoutine;
+    Rigidbody _rb;
 
+    void Awake(){
+        _rb = GetComponent<Rigidbody>();
+    }
     public void ConfigureMovement(float spd, float turnSpd, float stopDst, float turnDistance) {
         speed = spd;
         turnSpeed = turnSpd;
@@ -98,84 +102,87 @@ public class Unit : MonoBehaviour {
         RequestRepath();
     }
 
-    IEnumerator FollowPath() {
+    IEnumerator FollowPath()
+    {
         if (!isActiveAndEnabled || !gameObject.activeInHierarchy) yield break;
 
-        bool followingPath = true;
         int pathIndex = 0;
-        float speedPercent = 1f;
 
-        Vector3 firstDir = path.lookPoints[0] - transform.position;
-        firstDir.y = 0f;
-        if (firstDir.sqrMagnitude > 0.0001f) { 
-            Quaternion r = Quaternion.LookRotation(firstDir.normalized, Vector3.up);
-            transform.rotation = Quaternion.Slerp(transform.rotation, r, Time.deltaTime * turnSpeed);
-        }
-
-        _lastPos = transform.position;
-        _stuckTimer = 0f;
-
-        while (isActiveAndEnabled && gameObject.activeInHierarchy) {
+        while (isActiveAndEnabled && gameObject.activeInHierarchy)
+        {
             if (_movementSuspended)
             {
                 CurrentSpeed = 0f;
                 yield return null;
                 continue;
             }
-            Vector2 pos2D = new Vector2(transform.position.x, transform.position.z);
 
-            while (path.turnBoundaries[pathIndex].HasCrossedLine(pos2D)) {
-                if (pathIndex == path.finishLineIndex) { followingPath = false; break; }
-                pathIndex++;
+            if (path == null || path.lookPoints == null || path.lookPoints.Length == 0)
+            {
+                CurrentSpeed = 0f;
+                yield return null;
+                continue;
             }
 
-            if (followingPath) {
-                HasReachedDestination = false;
-
-                if (pathIndex >= path.slowDownIndex && stoppingDst > 0f) {
-                    float distToFinish = path.turnBoundaries[path.finishLineIndex].DistanceFromPoint(pos2D);
-                    speedPercent = Mathf.Clamp01(distToFinish / stoppingDst);
-
-                    if (speedPercent < 0.1f ||
-                        Vector3.Distance(transform.position, path.lookPoints[path.finishLineIndex]) <= stoppingDst) {
-                        HasReachedDestination = true;
-                        CurrentSpeed = 0f;
-                        OnDestinationReached?.Invoke();
-                        yield break;
-                    }
-                }
-
-                Vector3 direction = path.lookPoints[pathIndex] - transform.position;
-                direction.y = 0f;
-                if (direction.sqrMagnitude > 0.01f) {
-                    Quaternion targetRot = Quaternion.LookRotation(direction.normalized, Vector3.up);
-                    float yRot = Mathf.LerpAngle(transform.eulerAngles.y, targetRot.eulerAngles.y, Time.deltaTime * turnSpeed);
-                    transform.rotation = Quaternion.Euler(0f, yRot, 0f);
-                }
-
-                transform.Translate(Vector3.forward * Time.deltaTime * speed * speedPercent, Space.Self);
-                CurrentSpeed = speed * speedPercent;
-
-                float moved = Vector3.Distance(transform.position, _lastPos);
-                if (moved < 0.02f) _stuckTimer += Time.deltaTime;
-                else _stuckTimer = 0f;
-
-                if (_stuckTimer > stuckRepathSeconds) {
-                    TryRepath();
-                    _stuckTimer = 0f;
-                }
-
-                _lastPos = transform.position;
-            }
-            else {
+            // Si ya no hay puntos, terminamos
+            if (pathIndex >= path.lookPoints.Length)
+            {
                 HasReachedDestination = true;
                 CurrentSpeed = 0f;
+                OnDestinationReached?.Invoke();
                 yield break;
+            }
+
+            Vector3 targetPoint = path.lookPoints[pathIndex];
+            targetPoint.y = transform.position.y; // mantener altura
+
+            // Rotación hacia el waypoint
+            Vector3 dir = (targetPoint - transform.position);
+            dir.y = 0f;
+
+            if (dir.sqrMagnitude > 0.0001f)
+            {
+                Quaternion look = Quaternion.LookRotation(dir.normalized, Vector3.up);
+                float y = Mathf.LerpAngle(transform.eulerAngles.y, look.eulerAngles.y, Time.deltaTime * turnSpeed);
+                transform.rotation = Quaternion.Euler(0f, y, 0f);
+            }
+
+            // Movimiento hacia el waypoint (NO forward)
+            float stepDist = speed * Time.deltaTime;
+            Vector3 nextPos = Vector3.MoveTowards(transform.position, targetPoint, stepDist);
+
+            if (_rb != null)
+            {
+                _rb.MovePosition(nextPos);
+            }
+            else
+            {
+                transform.position = nextPos;
+            }
+
+            CurrentSpeed = speed;
+            HasReachedDestination = false;
+
+            // Si llegamos cerca del waypoint, avanzamos al siguiente
+            float arriveDist = 0.2f; // ajusta: 0.1 - 0.4 según tu escala
+            if (Vector3.Distance(transform.position, targetPoint) <= arriveDist)
+            {
+                pathIndex++;
+
+                // si era el último waypoint, ya llegamos
+                if (pathIndex >= path.lookPoints.Length)
+                {
+                    HasReachedDestination = true;
+                    CurrentSpeed = 0f;
+                    OnDestinationReached?.Invoke();
+                    yield break;
+                }
             }
 
             yield return null;
         }
     }
+
 
     public void StartFollowing(Transform newTarget) {
         if (!newTarget) return;
