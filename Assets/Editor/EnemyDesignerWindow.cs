@@ -34,8 +34,6 @@ public class EnemyDesignerWindow : EditorWindow {
 
     bool showScenePreview = true;
     Color previewColor = new Color(0f, 1f, 0.5f, 0.25f);
-
-    // NUEVO: opciones de componentes extra
     RuntimeAnimatorController animatorController;
     bool autoAddHealth = true;
     bool autoAddHealthBar = true;
@@ -63,7 +61,7 @@ public class EnemyDesignerWindow : EditorWindow {
     }
 
     void BuildStyles() {
-        if (h1 != null) return;          // por si lo llamamos varias veces
+        if (h1 != null) return;          
 
         h1 = new GUIStyle(EditorStyles.label);
         h1.fontSize = 14;
