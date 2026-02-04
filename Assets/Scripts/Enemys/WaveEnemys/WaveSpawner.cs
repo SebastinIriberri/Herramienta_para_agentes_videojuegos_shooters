@@ -1,8 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
-public class WaveSpawner : MonoBehaviour {
+public class WaveSpawner : MonoBehaviour
+{
     [Header("Referencias")]
     public EnemyPool enemyPool;
     public WavePreset[] waves;
@@ -12,28 +14,43 @@ public class WaveSpawner : MonoBehaviour {
     public bool autoStartOnPlay = true;
     public float delayBetweenWaves = 5f;
 
+    [Header("Scene Flow")]
+    [Tooltip("Si está activo, al terminar todas las waves y morir/despawnear todos, regresa al menú.")]
+    public bool returnToMenuWhenDone = true;
+
+    [Tooltip("Nombre de la escena del menú (debe estar en Scenes In Build).")]
+    public string menuSceneName = "MainMenu";
+
+    [Tooltip("Delay opcional antes de regresar al menú.")]
+    public float delayBeforeReturnToMenu = 1f;
+
     int currentWaveIndex = -1;
     bool sequenceRunning;
     int enemiesAliveInWave;
     readonly HashSet<EnemyManager> currentWaveEnemies = new HashSet<EnemyManager>();
 
-    void OnEnable() {
+    void OnEnable()
+    {
         if (enemyPool != null)
             enemyPool.OnEnemyDespawned += HandleEnemyDespawned;
     }
 
-    void OnDisable() {
+    void OnDisable()
+    {
         if (enemyPool != null)
             enemyPool.OnEnemyDespawned -= HandleEnemyDespawned;
     }
 
-    void Start() {
-        if (autoStartOnPlay && waves != null && waves.Length > 0 && enemyPool != null) {
+    void Start()
+    {
+        if (autoStartOnPlay && waves != null && waves.Length > 0 && enemyPool != null)
+        {
             StartSequence();
         }
     }
 
-    public void StartSequence() {
+    public void StartSequence()
+    {
         if (sequenceRunning) return;
         if (waves == null || waves.Length == 0) return;
         if (enemyPool == null) return;
@@ -41,10 +58,12 @@ public class WaveSpawner : MonoBehaviour {
         StartCoroutine(RunWaveSequence());
     }
 
-    IEnumerator RunWaveSequence() {
+    IEnumerator RunWaveSequence()
+    {
         sequenceRunning = true;
 
-        for (int i = 0; i < waves.Length; i++) {
+        for (int i = 0; i < waves.Length; i++)
+        {
             var preset = waves[i];
             if (preset == null) continue;
 
@@ -54,18 +73,33 @@ public class WaveSpawner : MonoBehaviour {
 
             yield return StartCoroutine(RunSingleWave(preset));
 
+            // Espera a que mueran/despawneen todos los de ESTA wave
             yield return new WaitUntil(() => enemiesAliveInWave == 0);
 
-            if (i < waves.Length - 1 && delayBetweenWaves > 0f) {
+            if (i < waves.Length - 1 && delayBetweenWaves > 0f)
                 yield return new WaitForSeconds(delayBetweenWaves);
-            }
         }
 
         sequenceRunning = false;
+
+        // ? Aquí ya no hay más waves y ya no hay enemigos vivos -> regresar al menú
+        if (returnToMenuWhenDone)
+            StartCoroutine(ReturnToMenu());
     }
 
-    IEnumerator RunSingleWave(WavePreset preset) {
-        foreach (var block in preset.blocks) {
+    IEnumerator ReturnToMenu()
+    {
+        if (delayBeforeReturnToMenu > 0f)
+            yield return new WaitForSeconds(delayBeforeReturnToMenu);
+
+        if (!string.IsNullOrEmpty(menuSceneName))
+            SceneManager.LoadScene(menuSceneName);
+    }
+
+    IEnumerator RunSingleWave(WavePreset preset)
+    {
+        foreach (var block in preset.blocks)
+        {
             if (block == null || block.count <= 0) continue;
 
             if (block.startDelay > 0f)
@@ -75,7 +109,8 @@ public class WaveSpawner : MonoBehaviour {
                 ? block.duration / block.count
                 : 0f;
 
-            for (int i = 0; i < block.count; i++) {
+            for (int i = 0; i < block.count; i++)
+            {
                 SpawnOne(block.enemyId);
 
                 if (interval > 0f)
@@ -84,18 +119,23 @@ public class WaveSpawner : MonoBehaviour {
         }
     }
 
-    void SpawnOne(string enemyId) {
+    void SpawnOne(string enemyId)
+    {
         if (enemyPool == null || spawnPoints == null || spawnPoints.Length == 0) return;
 
         var sp = spawnPoints[Random.Range(0, spawnPoints.Length)];
         var em = enemyPool.Spawn(enemyId, sp.position, sp.rotation);
-        if (em != null) {
+
+        if (em != null)
+        {
             enemiesAliveInWave++;
             currentWaveEnemies.Add(em);
         }
     }
 
-    void HandleEnemyDespawned(EnemyManager em) {
+    void HandleEnemyDespawned(EnemyManager em)
+    {
+        // Solo cuenta si pertenece a la wave actual
         if (!currentWaveEnemies.Remove(em)) return;
 
         enemiesAliveInWave--;
