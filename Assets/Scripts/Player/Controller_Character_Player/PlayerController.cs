@@ -207,4 +207,16 @@ public class PlayerController : MonoBehaviour {
         Cursor.lockState = cursorLocked ? CursorLockMode.Locked : CursorLockMode.None;
         Cursor.visible = !cursorLocked;
     }
+
+    void OnDisable()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    void OnDestroy()
+    {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
 }
