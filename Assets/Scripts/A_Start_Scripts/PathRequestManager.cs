@@ -1,17 +1,23 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+
+#if !UNITY_WEBGL || UNITY_EDITOR
 using System.Threading;
 using System.Collections.Concurrent;
+#endif
+
 public class PathRequestManager : MonoBehaviour {
     // Resultados que vuelven al hilo principal
-    Queue<PathResult> results = new Queue<PathResult>();
+    private readonly Queue<PathResult> results = new Queue<PathResult>();
 
-    // Cola de trabajo en background
+#if !UNITY_WEBGL || UNITY_EDITOR
+    // Cola de trabajo en background (solo PC/Editor)
     static ConcurrentQueue<PathRequest> workQueue = new ConcurrentQueue<PathRequest>();
     static AutoResetEvent workSignal = new AutoResetEvent(false);
     static Thread worker;
     static volatile bool running;
+#endif
 
     static PathRequestManager instance;
     Pathfinding pathfinding;
@@ -20,60 +26,86 @@ public class PathRequestManager : MonoBehaviour {
         instance = this;
         pathfinding = GetComponent<Pathfinding>();
 
-        // Lanza 1 worker dedicado (puedes abrir más si lo necesitas)
+#if !UNITY_WEBGL || UNITY_EDITOR
+        // Worker para PC/Editor
         running = true;
-        worker = new Thread(WorkerLoop) { IsBackground = true, Name = "AStarWorker" };
+        worker = new Thread(WorkerLoop) {
+            IsBackground = true,
+            Name = "AStarWorker"
+        };
         worker.Start();
+#else
+        Debug.Log("[PathRequestManager] WebGL mode: A* correrá en hilo principal (sin threads).");
+#endif
     }
 
     void OnDestroy() {
+#if !UNITY_WEBGL || UNITY_EDITOR
         running = false;
         workSignal.Set();
         try { worker?.Join(200); } catch { /* ignore */ }
+#endif
     }
 
     void Update() {
-        // Desencolar resultados y ejecutar callbacks en el hilo principal
-        if (results.Count > 0) {
-            int n = results.Count;
-            lock (results) {
-                for (int i = 0; i < n; i++) {
-                    var r = results.Dequeue();
-                    r.callback?.Invoke(r.path, r.success);
-                }
+        // Ejecutar callbacks SIEMPRE en hilo principal
+        lock (results) {
+            while (results.Count > 0) {
+                var r = results.Dequeue();
+                r.callback?.Invoke(r.path, r.success);
             }
         }
     }
 
+#if !UNITY_WEBGL || UNITY_EDITOR
     static void WorkerLoop() {
         while (running) {
             if (!workQueue.TryDequeue(out var req)) {
-                workSignal.WaitOne(10); // espera señal o 10 ms
+                workSignal.WaitOne(10);
                 continue;
             }
 
             try {
-                // Ejecuta A* fuera del main thread
+                // Ejecuta A* fuera del main thread (PC/Editor)
                 instance.pathfinding.FindPath(req, instance.FinishedProcessingPath);
             }
-            catch (Exception e) {
-                Debug.LogError($"A* worker exception: {e}");
+            catch {
+                // Evitar logs de Unity desde thread secundario
+                if (instance != null) {
+                    instance.FinishedProcessingPath(
+                        new PathResult(Array.Empty<Vector3>(), false, req.callback)
+                    );
+                }
             }
         }
     }
+#endif
 
     public static void RequestPath(PathRequest request) {
-        // Encola la solicitud y despierta al worker
+        if (instance == null || instance.pathfinding == null) {
+            Debug.LogWarning("[PathRequestManager] No hay instancia/pathfinding activo.");
+            request.callback?.Invoke(Array.Empty<Vector3>(), false);
+            return;
+        }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // ? WebGL: calcular path de forma síncrona en el hilo principal
+        instance.pathfinding.FindPath(request, instance.FinishedProcessingPath);
+#else
+        // ? PC/Editor: usar worker thread
         workQueue.Enqueue(request);
         workSignal.Set();
+#endif
     }
 
     public void FinishedProcessingPath(PathResult result) {
-        lock (results) { results.Enqueue(result); }
+        lock (results) {
+            results.Enqueue(result);
+        }
     }
 }
 
-// Tu PathRequest / PathResult originales
+// Tu PathRequest / PathResult
 public struct PathResult {
     public Vector3[] path;
     public bool success;
