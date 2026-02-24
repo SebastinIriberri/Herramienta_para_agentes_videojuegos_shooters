@@ -1513,7 +1513,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
       propertyPath: moveSpeed
-      value: 3.9
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
       propertyPath: turnSpeed
@@ -1627,6 +1627,14 @@ PrefabInstance:
       propertyPath: 'patrolPoints.Array.data[3]'
       value: 
       objectReference: {fileID: 1279674657}
+    - target: {fileID: 1699699285232120012, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
+      propertyPath: speed
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1699699285232120012, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
+      propertyPath: stoppingDst
+      value: 1.1
+      objectReference: {fileID: 0}
     - target: {fileID: 2150338869965099093, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
       propertyPath: m_LocalPosition.x
       value: 1.2580142

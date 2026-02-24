@@ -64,9 +64,8 @@ public class EnemyAnimator : MonoBehaviour
 
         if (normalizeToMaxSpeed)
         {
-            if (enemy != null) maxSpeed = enemy.moveSpeed;
-        
-            else if (unit != null) maxSpeed = unit.speed;
+            if (unit != null) maxSpeed = unit.speed;
+            else if (enemy != null) maxSpeed = enemy.moveSpeed;
         }
 
         maxSpeed = Mathf.Max(0.01f, maxSpeed); // evitar división por cero
@@ -84,7 +83,7 @@ public class EnemyAnimator : MonoBehaviour
         _lastPos = transform.position;
 
         float planarSpeed = new Vector2(worldVel.x, worldVel.z).magnitude;
-        animator.speed = Mathf.Lerp(0.9f, 1.6f, Mathf.InverseLerp(0f, maxSpeed, planarSpeed));
+        animator.speed = Mathf.Lerp(1f, 2f, Mathf.InverseLerp(0f, maxSpeed, planarSpeed));
     }
 
     public void SetBool(string parameter, bool value) => animator.SetBool(parameter, value);
