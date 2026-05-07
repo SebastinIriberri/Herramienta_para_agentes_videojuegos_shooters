@@ -955,6 +955,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: canStrafe
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: moveSpeed
       value: 1000
       objectReference: {fileID: 0}
@@ -963,28 +967,36 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: hearingRange
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawPath
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: enableHearing
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawMeleeHit
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawViewCone
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawTurnLines
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawLookPoints
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawMeleeAngle
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawWanderArea
@@ -992,11 +1004,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawMeleeTrigger
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: debugDrawDetectionRange
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: patrolPoints.Array.size
@@ -1012,15 +1024,15 @@ PrefabInstance:
       objectReference: {fileID: 1279674657}
     - target: {fileID: 2150338869965099093, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -24.60874
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2150338869965099093, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.0000019073486
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2150338869965099093, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -6.69549
+      value: 25
       objectReference: {fileID: 0}
     - target: {fileID: 2150338869965099093, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: m_LocalRotation.w
