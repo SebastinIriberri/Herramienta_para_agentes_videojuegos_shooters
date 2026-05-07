@@ -18,17 +18,17 @@ public class EnemyAnimator : MonoBehaviour
     float _smoothedRight;
 
     [Header("Tuning")]
-    [Tooltip("Qué tan rápido reacciona el blend tree a cambios de dirección/velocidad.")]
+    [Tooltip("Quï¿½ tan rï¿½pido reacciona el blend tree a cambios de direcciï¿½n/velocidad.")]
     public float speedSmooth = 10f;
 
     [Header("Normalization")]
-    [Tooltip("Usa moveSpeed del EnemyManager/Unit como velocidad máxima. Recomendada.")]
+    [Tooltip("Usa moveSpeed del EnemyManager/Unit como velocidad mï¿½xima. Recomendada.")]
     public bool normalizeToMaxSpeed = true;
 
-    [Tooltip("Si NO hay EnemyManager/Unit, usa este fallback como velocidad máxima (m/s).")]
+    [Tooltip("Si NO hay EnemyManager/Unit, usa este fallback como velocidad mï¿½xima (m/s).")]
     public float fallbackMaxSpeed = 3.5f;
 
-    [Tooltip("Si tu locomotion necesita 'más punch', multiplica el input normalizado. Ej: 1.2")]
+    [Tooltip("Si tu locomotion necesita 'mï¿½s punch', multiplica el input normalizado. Ej: 1.2")]
     public float inputGain = 1.0f;
 
     void Awake()
@@ -70,7 +70,7 @@ public class EnemyAnimator : MonoBehaviour
             else if (unit != null) maxSpeed = unit.speed;
         }
 
-        maxSpeed = Mathf.Max(0.01f, maxSpeed); // evitar división por cero
+        maxSpeed = Mathf.Max(0.01f, maxSpeed); // evitar divisiï¿½n por cero
 
 
         float targetForward = Mathf.Clamp((localVel.z / maxSpeed) * inputGain, -1f, 1f);
@@ -85,7 +85,7 @@ public class EnemyAnimator : MonoBehaviour
         _lastPos = transform.position;
 
         float planarSpeed = new Vector2(worldVel.x, worldVel.z).magnitude;
-        animator.speed = Mathf.Lerp(0.9f, 1.6f, Mathf.InverseLerp(0f, maxSpeed, planarSpeed));
+        animator.speed = Mathf.Lerp(1f, 2f, Mathf.InverseLerp(0f, maxSpeed, planarSpeed));
     }
 
     public void SetBool(string parameter, bool value) => animator.SetBool(parameter, value);
@@ -130,7 +130,7 @@ public class EnemyAnimator : MonoBehaviour
         if (attackingLayer != -1)
             animator.SetLayerWeight(attackingLayer, 0f);
 
-        // Limpia triggers típicos para que no se mezcle nada
+        // Limpia triggers tï¿½picos para que no se mezcle nada
         animator.ResetTrigger("Reload");
         animator.ResetTrigger("Melee");
         animator.ResetTrigger("Fire"); // si existe
@@ -139,7 +139,7 @@ public class EnemyAnimator : MonoBehaviour
         animator.SetFloat(hashForward, 0f);
         animator.SetFloat(hashRight, 0f);
 
-        // (opcional) evita que tu código vuelva a tocar speed
+        // (opcional) evita que tu cï¿½digo vuelva a tocar speed
         animator.speed = 1f;
     }
 
