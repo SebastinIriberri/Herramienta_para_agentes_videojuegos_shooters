@@ -212,6 +212,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemySwatGrunt (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 8895986140364810272, guid: 8d25b26aed3adea42b56badbc956a49b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -503,7 +507,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 833026902602702451, guid: e8d48549d0eba514898129ba184ec4b1, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1908286357335061412, guid: e8d48549d0eba514898129ba184ec4b1, type: 3}
       propertyPath: maxHealth
@@ -634,6 +638,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemySwatGrunt (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 8895986140364810272, guid: 8d25b26aed3adea42b56badbc956a49b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -725,6 +733,10 @@ PrefabInstance:
     - target: {fileID: 8895986140364810272, guid: 8d25b26aed3adea42b56badbc956a49b, type: 3}
       propertyPath: m_Name
       value: EnemySwatGrunt
+      objectReference: {fileID: 0}
+    - target: {fileID: 8895986140364810272, guid: 8d25b26aed3adea42b56badbc956a49b, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -900,7 +912,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1295857811
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -942,6 +954,50 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: moveSpeed
+      value: 1000
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: enableWander
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawPath
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: enableHearing
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawMeleeHit
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawViewCone
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawTurnLines
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawMeleeAngle
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawWanderArea
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawMeleeTrigger
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: debugDrawDetectionRange
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: patrolPoints.Array.size
       value: 2
@@ -1001,6 +1057,10 @@ PrefabInstance:
     - target: {fileID: 8895986140364810272, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
       propertyPath: m_Name
       value: EnemySwatEliteBrusier
+      objectReference: {fileID: 0}
+    - target: {fileID: 8895986140364810272, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1274,6 +1334,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemySwatEliteBrusier (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 8895986140364810272, guid: 4bab87b9dc3eb2e45a322e00bf48f513, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1524,6 +1588,10 @@ PrefabInstance:
       value: 155
       objectReference: {fileID: 0}
     - target: {fileID: 1305159132350429071, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
+      propertyPath: currentLOD
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1305159132350429071, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
       propertyPath: squadGroup
       value: 
       objectReference: {fileID: 1748514439}
@@ -1681,7 +1749,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8895986140364810272, guid: a51fa742037599341a2e8bb8951de8e1, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1707,6 +1775,10 @@ PrefabInstance:
     - target: {fileID: 4147889999408249574, guid: fe2839049a74a09419d61f0d2385782d, type: 3}
       propertyPath: m_Name
       value: SquadGroup
+      objectReference: {fileID: 0}
+    - target: {fileID: 4147889999408249574, guid: fe2839049a74a09419d61f0d2385782d, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4370950905412062632, guid: fe2839049a74a09419d61f0d2385782d, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1764,6 +1836,10 @@ PrefabInstance:
     - target: {fileID: 859209183683147233, guid: 7159c4b5d4c827a45932c7fef292a4cf, type: 3}
       propertyPath: m_Name
       value: Canvas
+      objectReference: {fileID: 0}
+    - target: {fileID: 859209183683147233, guid: 7159c4b5d4c827a45932c7fef292a4cf, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1503315682043365094, guid: 7159c4b5d4c827a45932c7fef292a4cf, type: 3}
       propertyPath: health
@@ -1872,7 +1948,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2291084992508919154, guid: 3578d6e7a518890489f1cf90940b03b4, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2496027694364429141, guid: 3578d6e7a518890489f1cf90940b03b4, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2642,6 +2718,14 @@ PrefabInstance:
     - target: {fileID: 7904371332908051683, guid: 16fad4dabd7e24849a921c334a3debc2, type: 3}
       propertyPath: m_Name
       value: PatrolPoints
+      objectReference: {fileID: 0}
+    - target: {fileID: 9057843473542119947, guid: 16fad4dabd7e24849a921c334a3debc2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 9057843473542119947, guid: 16fad4dabd7e24849a921c334a3debc2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 11.26
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -5,12 +5,13 @@ public class EnemyAnimator : MonoBehaviour
     Animator animator;
     Unit unit;
     EnemyManager enemy;   // para leer moveSpeed
+    Health health;
 
     int hashForward;
     int hashRight;
     int hashReload;
     int hashMelee;
-    int hashDeathTrigger; 
+    int hashDeathTrigger;
 
     Vector3 _lastPos;
     float _smoothedForward;
@@ -35,6 +36,7 @@ public class EnemyAnimator : MonoBehaviour
         animator = GetComponent<Animator>();
         unit = GetComponent<Unit>();
         enemy = GetComponent<EnemyManager>();
+        health = GetComponent<Health>();
 
         hashForward = Animator.StringToHash("ForwardSpeed");
         hashRight = Animator.StringToHash("RightSpeed");
@@ -48,8 +50,7 @@ public class EnemyAnimator : MonoBehaviour
 
     void Update()
     {
-        var h = GetComponent<Health>();
-        if (h != null && h.IsDead)
+        if (health != null && health.IsDead)
         {
             animator.speed = 1f;
             return;
@@ -65,13 +66,13 @@ public class EnemyAnimator : MonoBehaviour
         if (normalizeToMaxSpeed)
         {
             if (enemy != null) maxSpeed = enemy.moveSpeed;
-        
+
             else if (unit != null) maxSpeed = unit.speed;
         }
 
         maxSpeed = Mathf.Max(0.01f, maxSpeed); // evitar división por cero
 
-       
+
         float targetForward = Mathf.Clamp((localVel.z / maxSpeed) * inputGain, -1f, 1f);
         float targetRight = Mathf.Clamp((localVel.x / maxSpeed) * inputGain, -1f, 1f);
 

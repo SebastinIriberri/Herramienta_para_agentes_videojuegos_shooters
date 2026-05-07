@@ -4,21 +4,15 @@ using UnityEngine;
 public class Unit : MonoBehaviour {
     const float minPathUpdateTime = .2f;
 
-    [Header("Repath (anti-spam)")]
-    [Tooltip("Tiempo mínimo entre recalcular rutas para el MISMO target.")]
-    public float repathCooldown = 0.25f;
+    [HideInInspector] public float repathCooldown = 0.25f;
+    [HideInInspector] public float targetMoveThreshold = 0.5f;
+    [HideInInspector] public float stuckRepathSeconds = 1.5f;
 
-    [Tooltip("Si el target no se movió más que esto, no se recalcula.")]
-    public float targetMoveThreshold = 0.5f;
-
-    [Tooltip("Si nosotros no avanzamos nada en este tiempo, forzar repath.")]
-    public float stuckRepathSeconds = 1.5f;
-
-    public Transform target;
-    public float speed = 3.5f;
-    public float turnSpeed = 6f;
-    public float turnDst = 5f;
-    public float stoppingDst = 1.25f;
+    [HideInInspector] public Transform target;
+    [HideInInspector] public float speed = 3.5f;
+    [HideInInspector] public float turnSpeed = 6f;
+    [HideInInspector] public float turnDst = 5f;
+    [HideInInspector] public float stoppingDst = 1.25f;
 
     Path path;
     public System.Action OnDestinationReached;

@@ -445,6 +445,14 @@ public class EnemyManager : MonoBehaviour {
         lastHeardNoisePos = info.position;
         lastHeardNoiseTime = Time.time;
 
+        // Si ya estaba investigando un ruido, actualiza el destino al nuevo sonido.
+        if (currentState == investigateNoiseState)
+        {
+            unit?.StopFollowing();
+            FollowPoint(lastHeardNoisePos);
+            return;
+        }
+
         TransitionTo(investigateNoiseState);
     }
 
@@ -505,19 +513,37 @@ public class EnemyManager : MonoBehaviour {
     public void OnMeleeHitEvent() {
         if (currentState != meleeState) return;
         if (_meleeHitConsumed) return;
+
         _meleeHitConsumed = true;
+
         PerformMeleeHit();
+
+        // Bloquea el disparo después del golpe cuerpo a cuerpo.
+        BlockShooting(postMeleeShootBlockSeconds);
     }
 
     public void OnMeleeFinishedEvent() {
         if (currentState != meleeState) return;
 
-        if (currentTarget) {
+        // Refuerza el bloqueo al terminar el estado de melee.
+        // Esto evita que al regresar a AttackState dispare inmediatamente.
+        BlockShooting(postMeleeShootBlockSeconds);
+
+        if (currentTarget)
+        {
             float dist = Vector3.Distance(transform.position, currentTarget.position);
-            if (dist <= attackRange && HasLineOfSight(currentTarget, attackRange + 1f)) GoToAttack();
-            else GoToChase();
+
+            if (dist <= attackRange && HasLineOfSight(currentTarget, attackRange + 1f))
+            {
+                GoToAttack();
+            }
+            else
+            {
+                GoToChase();
+            }
         }
-        else {
+        else
+        {
             GoToPatrol();
         }
     }
