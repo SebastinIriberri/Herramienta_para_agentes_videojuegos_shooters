@@ -1,9 +1,14 @@
 using UnityEditor;
-using UnityEditor.ShortcutManagement;
 using UnityEngine;
 using System.Collections.Generic;
 
-public class EnemyDesignerWindow : EditorWindow {
+public class EnemyDesignerWindow : EditorWindow
+{
+    // IMPORTANTE:
+    // Estos nombres deben coincidir EXACTAMENTE con el nombre del prefab y del arquetipo.
+    const string GRUNT_PRESET_ASSET_NAME = "GruntPreset";
+    const string ELITE_PRESET_ASSET_NAME = "ElitePreset";
+
     GUIStyle h1, h2, help;
 
     bool foldGlobal = true;
@@ -16,10 +21,19 @@ public class EnemyDesignerWindow : EditorWindow {
     EnemyArchetype defaultArchetype;
     GameObject enemyRootParent;
 
-    enum ForceRole { AutoFromArchetype, Grunt, Elite }
+    enum ForceRole
+    {
+        AutoFromArchetype,
+        Grunt,
+        Elite
+    }
+
     ForceRole forceRole = ForceRole.AutoFromArchetype;
 
-    int spawnCount = 6;
+    // La cantidad inicial ahora es 1.
+    // Los botones de preset ya NO modifican este valor.
+    int spawnCount = 1;
+
     float spawnRadius = 10f;
     bool snapToGround = true;
     LayerMask groundMask = ~0;
@@ -34,34 +48,44 @@ public class EnemyDesignerWindow : EditorWindow {
 
     bool showScenePreview = true;
     Color previewColor = new Color(0f, 1f, 0.5f, 0.25f);
+
     RuntimeAnimatorController animatorController;
     bool autoAddHealth = true;
     bool autoAddHealthBar = true;
 
-    struct QuickPreset {
+    struct QuickPreset
+    {
         public string name;
-        public System.Action<EnemyArchetype, EnemyDesignerWindow> apply;
+        public ForceRole role;
+        public string prefabExactName;
+        public string archetypeExactName;
+        public bool randomYaw;
     }
+
     List<QuickPreset> presets;
 
     [MenuItem("Tools/Shooter AI/Enemy Designer Pro")]
-    public static void Open() {
+    public static void Open()
+    {
         var w = GetWindow<EnemyDesignerWindow>("Enemy Designer Pro");
         w.minSize = new Vector2(460, 560);
     }
 
-    void OnEnable() {
+    void OnEnable()
+    {
         BuildStyles();
         BuildPresets();
         SceneView.duringSceneGui += OnSceneGUI;
     }
 
-    void OnDisable() {
+    void OnDisable()
+    {
         SceneView.duringSceneGui -= OnSceneGUI;
     }
 
-    void BuildStyles() {
-        if (h1 != null) return;          
+    void BuildStyles()
+    {
+        if (h1 != null) return;
 
         h1 = new GUIStyle(EditorStyles.label);
         h1.fontSize = 14;
@@ -75,35 +99,36 @@ public class EnemyDesignerWindow : EditorWindow {
         help.wordWrap = true;
     }
 
-    void BuildPresets() {
-        presets = new List<QuickPreset>() {
-            new QuickPreset {
-                name = "Grunt (rápido, visión media)",
-                apply = (arch, w) => {
-                    w.spawnCount = 6;
-                    w.spawnRadius = 8f;
-                    w.forceRole = ForceRole.Grunt;
-                    w.randomYaw = true;
-                }
+    void BuildPresets()
+    {
+        presets = new List<QuickPreset>()
+        {
+            new QuickPreset
+            {
+                name = "Usar Grunt",
+                role = ForceRole.Grunt,
+                prefabExactName = GRUNT_PRESET_ASSET_NAME,
+                archetypeExactName = GRUNT_PRESET_ASSET_NAME,
+                randomYaw = true
             },
-            new QuickPreset {
-                name = "Elite (pocos, rango mayor)",
-                apply = (arch, w) => {
-                    w.spawnCount = 2;
-                    w.spawnRadius = 6f;
-                    w.forceRole = ForceRole.Elite;
-                    w.randomYaw = false;
-                }
+            new QuickPreset
+            {
+                name = "Usar Elite",
+                role = ForceRole.Elite,
+                prefabExactName = ELITE_PRESET_ASSET_NAME,
+                archetypeExactName = ELITE_PRESET_ASSET_NAME,
+                randomYaw = false
             }
         };
     }
 
-    void OnGUI() {
+    void OnGUI()
+    {
         if (h1 == null) BuildStyles();
 
         EditorGUILayout.Space(6);
         EditorGUILayout.LabelField("Enemy Designer Pro", h1);
-        EditorGUILayout.LabelField("Crea enemigos con presets, vista previa y squad.", help);
+        EditorGUILayout.LabelField("Crea enemigos usando prefab base, arquetipos, vista previa y escuadra.", help);
 
         DrawPresetsToolbar();
 
@@ -116,289 +141,565 @@ public class EnemyDesignerWindow : EditorWindow {
         DrawTips();
     }
 
-    void DrawPresetsToolbar() {
+    void DrawPresetsToolbar()
+    {
         EditorGUILayout.BeginHorizontal();
+
         EditorGUILayout.LabelField("Presets rápidos:", h2);
-        foreach (var p in presets) {
-            if (GUILayout.Button(p.name, GUILayout.Height(22))) {
-                p.apply(defaultArchetype, this);
-                Repaint();
+
+        foreach (var preset in presets)
+        {
+            if (GUILayout.Button(preset.name, GUILayout.Height(22)))
+            {
+                ApplyQuickPreset(preset);
             }
         }
+
         EditorGUILayout.EndHorizontal();
     }
 
-    void DrawGlobal() {
+    void ApplyQuickPreset(QuickPreset preset)
+    {
+        // El preset solo llena prefab, arquetipo, rol y rotación.
+        // NO modifica cantidad ni radio.
+        forceRole = preset.role;
+        randomYaw = preset.randomYaw;
+
+        GameObject foundPrefab = FindPrefabByExactName(preset.prefabExactName);
+        if (foundPrefab != null)
+        {
+            enemyPrefab = foundPrefab;
+        }
+        else
+        {
+            Debug.LogWarning($"[Enemy Designer] No se encontró un prefab llamado exactamente: {preset.prefabExactName}");
+        }
+
+        EnemyArchetype foundArchetype = FindArchetypeByExactName(preset.archetypeExactName);
+        if (foundArchetype != null)
+        {
+            defaultArchetype = foundArchetype;
+        }
+        else
+        {
+            Debug.LogWarning($"[Enemy Designer] No se encontró un arquetipo llamado exactamente: {preset.archetypeExactName}");
+        }
+
+        Repaint();
+    }
+
+    GameObject FindPrefabByExactName(string exactName)
+    {
+        if (string.IsNullOrWhiteSpace(exactName))
+            return null;
+
+        string[] guids = AssetDatabase.FindAssets("t:Prefab");
+
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+
+            if (prefab == null)
+                continue;
+
+            if (prefab.name == exactName)
+                return prefab;
+        }
+
+        return null;
+    }
+
+    EnemyArchetype FindArchetypeByExactName(string exactName)
+    {
+        if (string.IsNullOrWhiteSpace(exactName))
+            return null;
+
+        string[] guids = AssetDatabase.FindAssets("t:EnemyArchetype");
+
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            EnemyArchetype archetype = AssetDatabase.LoadAssetAtPath<EnemyArchetype>(path);
+
+            if (archetype == null)
+                continue;
+
+            if (archetype.name == exactName)
+                return archetype;
+        }
+
+        return null;
+    }
+
+    void DrawGlobal()
+    {
         EditorGUILayout.Space(6);
-        foldGlobal = EditorGUILayout.BeginFoldoutHeaderGroup(foldGlobal, "Opciones Globales");
-        if (foldGlobal) {
+        foldGlobal = EditorGUILayout.BeginFoldoutHeaderGroup(foldGlobal, "Opciones globales");
+
+        if (foldGlobal)
+        {
             EditorGUILayout.Space(4);
+
             enemyPrefab = (GameObject)EditorGUILayout.ObjectField(
-                new GUIContent("Prefab base", "Prefab visual que se va a instanciar."),
-                enemyPrefab, typeof(GameObject), false);
+                new GUIContent("Prefab base", "Prefab que se va a instanciar como enemigo."),
+                enemyPrefab,
+                typeof(GameObject),
+                false
+            );
 
             defaultArchetype = (EnemyArchetype)EditorGUILayout.ObjectField(
-                new GUIContent("Arquetipo (opcional)", "EnemyArchetype a aplicar tras crear."),
-                defaultArchetype, typeof(EnemyArchetype), false);
+                new GUIContent("Arquetipo", "Arquetipo que se aplicará al enemigo después de crearlo."),
+                defaultArchetype,
+                typeof(EnemyArchetype),
+                false
+            );
 
             enemyRootParent = (GameObject)EditorGUILayout.ObjectField(
-                new GUIContent("Parent en jerarquía", "Opcional: carpeta en la jerarquía."),
-                enemyRootParent, typeof(GameObject), true);
+                new GUIContent("Parent en jerarquía", "Opcional: objeto padre donde se crearán los enemigos."),
+                enemyRootParent,
+                typeof(GameObject),
+                true
+            );
 
-            forceRole = (ForceRole)EditorGUILayout.EnumPopup(
-                new GUIContent("Forzar Rol", "Auto (SO) o fijar Grunt/Elite."),
-                forceRole);
+            forceRole = DrawForceRoleField(
+                new GUIContent("Forzar rol", "Automático desde arquetipo o asignación manual de Grunt/Elite."),
+                forceRole
+            );
         }
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 
-    void DrawSpawn() {
+    ForceRole DrawForceRoleField(GUIContent label, ForceRole value)
+    {
+        string[] options =
+        {
+            "Automático desde arquetipo",
+            "Grunt",
+            "Elite"
+        };
+
+        int selected = Mathf.Clamp((int)value, 0, options.Length - 1);
+        selected = EditorGUILayout.Popup(label, selected, options);
+
+        return (ForceRole)selected;
+    }
+
+    void DrawSpawn()
+    {
         EditorGUILayout.Space(4);
-        foldSpawn = EditorGUILayout.BeginFoldoutHeaderGroup(foldSpawn, "Spawn / Distribución");
-        if (foldSpawn) {
-            spawnCount = EditorGUILayout.IntSlider(new GUIContent("Cantidad"), spawnCount, 1, 100);
-            spawnRadius = EditorGUILayout.Slider(new GUIContent("Radio"), spawnRadius, 0.1f, 100f);
-            randomYaw = EditorGUILayout.ToggleLeft("Rotación aleatoria Y", randomYaw);
+        foldSpawn = EditorGUILayout.BeginFoldoutHeaderGroup(foldSpawn, "Spawn / distribución");
+
+        if (foldSpawn)
+        {
+            spawnCount = EditorGUILayout.IntSlider(
+                new GUIContent("Cantidad", "Cantidad de enemigos a crear."),
+                spawnCount,
+                1,
+                100
+            );
+
+            spawnRadius = EditorGUILayout.Slider(
+                new GUIContent("Radio", "Radio de distribución alrededor del centro de creación."),
+                spawnRadius,
+                0.1f,
+                100f
+            );
+
+            randomYaw = EditorGUILayout.ToggleLeft("Rotación aleatoria en Y", randomYaw);
 
             EditorGUILayout.Space(4);
-            showScenePreview = EditorGUILayout.ToggleLeft("Preview en SceneView", showScenePreview);
-            previewColor = EditorGUILayout.ColorField("Color preview", previewColor);
+
+            showScenePreview = EditorGUILayout.ToggleLeft("Vista previa en SceneView", showScenePreview);
+            previewColor = EditorGUILayout.ColorField("Color de vista previa", previewColor);
 
             EditorGUILayout.Space(4);
-            snapToGround = EditorGUILayout.Toggle(new GUIContent("Ajustar al suelo (raycast)"), snapToGround);
-            using (new EditorGUI.DisabledScope(!snapToGround)) {
-                groundMask = LayerMaskField("Ground Mask", groundMask);
-                groundRayHeight = EditorGUILayout.Slider("Altura Raycast", groundRayHeight, 1f, 200f);
+
+            snapToGround = EditorGUILayout.Toggle(
+                new GUIContent("Ajustar al suelo con raycast"),
+                snapToGround
+            );
+
+            using (new EditorGUI.DisabledScope(!snapToGround))
+            {
+                groundMask = LayerMaskField("Capas de suelo", groundMask);
+                groundRayHeight = EditorGUILayout.Slider("Altura del raycast", groundRayHeight, 1f, 200f);
             }
         }
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 
-    void DrawSquad() {
+    void DrawSquad()
+    {
         EditorGUILayout.Space(4);
-        foldSquad = EditorGUILayout.BeginFoldoutHeaderGroup(foldSquad, "Escuadra (opcional)");
-        if (foldSquad) {
+        foldSquad = EditorGUILayout.BeginFoldoutHeaderGroup(foldSquad, "Escuadra opcional");
+
+        if (foldSquad)
+        {
             assignToSquad = EditorGUILayout.ToggleLeft("Asignar a SquadGroup", assignToSquad);
-            using (new EditorGUI.DisabledScope(!assignToSquad)) {
+
+            using (new EditorGUI.DisabledScope(!assignToSquad))
+            {
                 squadToUse = (SquadGroup)EditorGUILayout.ObjectField(
                     new GUIContent("SquadGroup destino"),
-                    squadToUse, typeof(SquadGroup), true);
+                    squadToUse,
+                    typeof(SquadGroup),
+                    true
+                );
 
-                if (GUILayout.Button("Crear SquadGroup")) {
+                if (GUILayout.Button("Crear SquadGroup"))
+                {
                     squadToUse = CreateSquadGroup(enemyRootParent ? enemyRootParent.transform : null);
                     Ping(squadToUse ? squadToUse.gameObject : null);
                 }
             }
         }
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 
-    void DrawExtras() {
+    void DrawExtras()
+    {
         EditorGUILayout.Space(4);
         foldExtras = EditorGUILayout.BeginFoldoutHeaderGroup(foldExtras, "Extras al crear enemigo");
-        if (foldExtras) {
-            EditorGUILayout.LabelField("Animator", h2);
+
+        if (foldExtras)
+        {
+            EditorGUILayout.LabelField("Animador", h2);
+
             animatorController = (RuntimeAnimatorController)EditorGUILayout.ObjectField(
                 new GUIContent("Animator Controller", "Se asigna al componente Animator del enemigo."),
-                animatorController, typeof(RuntimeAnimatorController), false);
+                animatorController,
+                typeof(RuntimeAnimatorController),
+                false
+            );
 
             EditorGUILayout.Space(4);
             EditorGUILayout.LabelField("Salud", h2);
+
             autoAddHealth = EditorGUILayout.ToggleLeft("Añadir Health si no existe", autoAddHealth);
             autoAddHealthBar = EditorGUILayout.ToggleLeft("Añadir HealthBarWorld si no existe", autoAddHealthBar);
         }
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 
-    void DrawActions() {
+    void DrawActions()
+    {
         EditorGUILayout.Space(6);
         EditorGUILayout.BeginVertical("box");
+
         EditorGUILayout.LabelField("Acciones", h2);
 
         selectAfterCreate = EditorGUILayout.ToggleLeft("Seleccionar creados", selectAfterCreate);
-        pingSelection = EditorGUILayout.ToggleLeft("Ping selección", pingSelection);
+        pingSelection = EditorGUILayout.ToggleLeft("Ping a selección", pingSelection);
 
         EditorGUILayout.Space(6);
-        using (new EditorGUI.DisabledScope(enemyPrefab == null)) {
-            if (GUILayout.Button($"Crear {spawnCount} Enemigos", GUILayout.Height(28)))
+
+        using (new EditorGUI.DisabledScope(enemyPrefab == null))
+        {
+            string buttonText = spawnCount == 1
+                ? "Crear 1 enemigo"
+                : $"Crear {spawnCount} enemigos";
+
+            if (GUILayout.Button(buttonText, GUILayout.Height(28)))
                 CreateEnemies();
         }
+
+        if (enemyPrefab == null)
+        {
+            EditorGUILayout.HelpBox(
+                "Selecciona un prefab base o usa un preset rápido antes de crear enemigos.",
+                MessageType.Info
+            );
+        }
+
         EditorGUILayout.EndVertical();
     }
 
-    void DrawTips() {
+    void DrawTips()
+    {
         EditorGUILayout.Space(4);
-        foldTips = EditorGUILayout.BeginFoldoutHeaderGroup(foldTips, "Tips & Atajos");
-        if (foldTips) {
+        foldTips = EditorGUILayout.BeginFoldoutHeaderGroup(foldTips, "Tips y atajos");
+
+        if (foldTips)
+        {
             EditorGUILayout.LabelField(
                 "• Usa un prefab base con colliders, Rigidbody y Canvas de vida.\n" +
-                "• El Designer añade EnemyManager, Shooter, Animator script, etc.\n" +
+                "• El diseñador puede añadir EnemyManager, EnemyShooter, Unit y EnemyAnimator.\n" +
                 "• El Animator Controller se asigna automáticamente si lo eliges.\n" +
-                "• Puedes crear un SquadGroup desde aquí mismo.", help);
+                "• Puedes crear un SquadGroup desde esta ventana.\n" +
+                "• Los presets buscan assets con nombre exacto: GruntPreset y ElitePreset.",
+                help
+            );
         }
+
         EditorGUILayout.EndFoldoutHeaderGroup();
     }
 
-    void OnSceneGUI(SceneView sv) {
+    void OnSceneGUI(SceneView sv)
+    {
         if (!showScenePreview) return;
+
         Handles.zTest = UnityEngine.Rendering.CompareFunction.LessEqual;
 
         Vector3 c = GetSceneCenterOnGroundOrZero();
+
         Handles.color = previewColor;
         Handles.DrawSolidDisc(c, Vector3.up, spawnRadius);
+
         Handles.color = new Color(previewColor.r, previewColor.g, previewColor.b, 1f);
         Handles.DrawWireDisc(c, Vector3.up, spawnRadius);
 
         Handles.BeginGUI();
-        var r = new Rect(12, 12, 260, 38);
+
+        Rect r = new Rect(12, 12, 300, 42);
         GUI.Box(r, GUIContent.none);
-        GUI.Label(r, $"Enemy Designer Preview\ncenter: {c}  radius: {spawnRadius:0.0}");
+        GUI.Label(r, $"Vista previa Enemy Designer\nCentro: {c} | Radio: {spawnRadius:0.0}");
+
         Handles.EndGUI();
     }
 
-    void CreateEnemies() {
+    void CreateEnemies()
+    {
         Transform parent = enemyRootParent ? enemyRootParent.transform : null;
-        if (!parent) {
-            var container = new GameObject("Enemies");
+
+        if (!parent)
+        {
+            GameObject container = new GameObject("Enemies");
             Undo.RegisterCreatedObjectUndo(container, "Create Enemies Root");
             parent = container.transform;
         }
 
         SquadGroup squad = null;
+
         if (assignToSquad)
             squad = squadToUse ? squadToUse : CreateSquadGroup(parent);
 
         Vector3 center = GetSceneCenterOnGroundOrZero();
-        var list = new List<GameObject>();
+        List<GameObject> createdEnemies = new List<GameObject>();
 
-        for (int i = 0; i < spawnCount; i++) {
+        for (int i = 0; i < spawnCount; i++)
+        {
             Vector3 pos = center + Random.insideUnitSphere * spawnRadius;
             pos.y = center.y + groundRayHeight;
-            if (snapToGround) pos = SnapDown(pos, center.y, out _);
 
-            var go = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab);
-            if (!go) go = Instantiate(enemyPrefab);
+            if (snapToGround)
+                pos = SnapDown(pos, center.y, out _);
+
+            GameObject go = (GameObject)PrefabUtility.InstantiatePrefab(enemyPrefab);
+
+            if (!go)
+                go = Instantiate(enemyPrefab);
 
             Undo.RegisterCreatedObjectUndo(go, "Create Enemy");
+
             go.name = $"{enemyPrefab.name}_{i + 1:00}";
             go.transform.SetParent(parent, true);
             go.transform.position = pos;
-            if (randomYaw) go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-            var mgr = EnsureEnemyMinimalSetup(go);
+            if (randomYaw)
+                go.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
 
-            if (mgr) {
+            EnemyManager mgr = EnsureEnemyMinimalSetup(go);
+
+            if (mgr)
+            {
+                // Primero se asigna y aplica el arquetipo.
+                // Después se fuerza el rol, para que el arquetipo no lo sobrescriba.
+                if (defaultArchetype)
+                {
+                    mgr.archetype = defaultArchetype;
+                    mgr.ApplyArchetype(defaultArchetype);
+                }
+
                 if (forceRole != ForceRole.AutoFromArchetype)
-                    mgr.role = (forceRole == ForceRole.Elite) ? EnemyRole.Elite : EnemyRole.Grunt;
+                {
+                    mgr.role = forceRole == ForceRole.Elite
+                        ? EnemyRole.Elite
+                        : EnemyRole.Grunt;
+                }
 
-                if (defaultArchetype) mgr.ApplyArchetype(defaultArchetype);
-                if (assignToSquad && squad) mgr.squadGroup = squad;
+                if (assignToSquad && squad)
+                    mgr.squadGroup = squad;
+
+                EditorUtility.SetDirty(mgr);
             }
 
-            list.Add(go);
+            createdEnemies.Add(go);
+            EditorUtility.SetDirty(go);
         }
 
-        if (selectAfterCreate) Selection.objects = list.ToArray();
-        if (pingSelection && list.Count > 0) EditorGUIUtility.PingObject(list[0]);
-        Debug.Log($"[Enemy Designer] Creados {list.Count} enemigos.");
+        if (selectAfterCreate)
+            Selection.objects = createdEnemies.ToArray();
+
+        if (pingSelection && createdEnemies.Count > 0)
+            EditorGUIUtility.PingObject(createdEnemies[0]);
+
+        Debug.Log($"[Enemy Designer] Creados {createdEnemies.Count} enemigos.");
     }
 
-    EnemyManager EnsureEnemyMinimalSetup(GameObject go) {
-        var mgr = go.GetComponent<EnemyManager>();
-        if (!mgr) mgr = Undo.AddComponent<EnemyManager>(go);
+    EnemyManager EnsureEnemyMinimalSetup(GameObject go)
+    {
+        CapsuleCollider cap = go.GetComponent<CapsuleCollider>();
 
-        // Animator base
-        var animator = go.GetComponent<Animator>();
-        if (!animator) animator = Undo.AddComponent<Animator>(go);
-        if (animatorController) animator.runtimeAnimatorController = animatorController;
-
-        if (!go.GetComponent<EnemyShooter>()) Undo.AddComponent<EnemyShooter>(go);
-        if (!go.GetComponent<EnemyAnimator>()) Undo.AddComponent<EnemyAnimator>(go);
-        if (!go.GetComponent<Unit>()) Undo.AddComponent<Unit>(go);
-
-        if (autoAddHealth && !go.GetComponent<Health>()) Undo.AddComponent<Health>(go);
-        if (autoAddHealthBar && !go.GetComponent<HealthBarWorld>()) Undo.AddComponent<HealthBarWorld>(go);
-
-        var cap = go.GetComponent<CapsuleCollider>();
-        if (!cap) {
+        if (!cap)
+        {
             cap = Undo.AddComponent<CapsuleCollider>(go);
-            cap.center = new Vector3(0, 1f, 0);
+            cap.center = new Vector3(0f, 1f, 0f);
             cap.height = 2f;
             cap.radius = 0.35f;
         }
 
-        var rb = go.GetComponent<Rigidbody>();
-        if (!rb) {
+        Rigidbody rb = go.GetComponent<Rigidbody>();
+
+        if (!rb)
+        {
             rb = Undo.AddComponent<Rigidbody>(go);
             rb.useGravity = true;
             rb.isKinematic = true;
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         }
 
+        Animator animator = go.GetComponent<Animator>();
+
+        if (!animator)
+            animator = Undo.AddComponent<Animator>(go);
+
+        if (animatorController)
+            animator.runtimeAnimatorController = animatorController;
+
+        EnemyManager mgr = go.GetComponent<EnemyManager>();
+
+        if (!mgr)
+            mgr = Undo.AddComponent<EnemyManager>(go);
+
+        if (!go.GetComponent<EnemyShooter>())
+            Undo.AddComponent<EnemyShooter>(go);
+
+        if (!go.GetComponent<Unit>())
+            Undo.AddComponent<Unit>(go);
+
+        if (!go.GetComponent<EnemyAnimator>())
+            Undo.AddComponent<EnemyAnimator>(go);
+
+        if (autoAddHealth && !go.GetComponent<Health>())
+            Undo.AddComponent<Health>(go);
+
+        if (autoAddHealthBar && !go.GetComponent<HealthBarWorld>())
+            Undo.AddComponent<HealthBarWorld>(go);
+
         EditorUtility.SetDirty(go);
+
         mgr.ForceValidateForDesigner();
+
         return mgr;
     }
 
-    SquadGroup CreateSquadGroup(Transform parent = null) {
-        var go = new GameObject("SquadGroup");
+    SquadGroup CreateSquadGroup(Transform parent = null)
+    {
+        GameObject go = new GameObject("SquadGroup");
+
         Undo.RegisterCreatedObjectUndo(go, "Create SquadGroup");
-        if (parent) go.transform.SetParent(parent, true);
-        var sg = go.AddComponent<SquadGroup>();
+
+        if (parent)
+            go.transform.SetParent(parent, true);
+
+        SquadGroup sg = go.AddComponent<SquadGroup>();
+
         return sg;
     }
 
-    Vector3 GetSceneCenterOnGroundOrZero() {
-        var sv = SceneView.lastActiveSceneView;
-        if (sv && sv.camera) {
-            var cam = sv.camera;
-            var ray = new Ray(cam.transform.position, cam.transform.forward);
-            if (Physics.Raycast(ray, out var hit, 1000f, groundMask))
+    Vector3 GetSceneCenterOnGroundOrZero()
+    {
+        SceneView sv = SceneView.lastActiveSceneView;
+
+        if (sv && sv.camera)
+        {
+            Camera cam = sv.camera;
+            Ray ray = new Ray(cam.transform.position, cam.transform.forward);
+
+            if (Physics.Raycast(ray, out RaycastHit hit, 1000f, groundMask))
                 return hit.point;
+
             return cam.transform.position + cam.transform.forward * 10f;
         }
+
         return Vector3.zero;
     }
 
-    Vector3 SnapDown(Vector3 start, float minY, out bool ok) {
-        var from = start;
-        if (Physics.Raycast(from, Vector3.down, out var hit, groundRayHeight * 2f, groundMask, QueryTriggerInteraction.Ignore)) {
-            ok = true; return hit.point;
+    Vector3 SnapDown(Vector3 start, float minY, out bool ok)
+    {
+        Vector3 from = start;
+
+        if (Physics.Raycast(from, Vector3.down, out RaycastHit hit, groundRayHeight * 2f, groundMask, QueryTriggerInteraction.Ignore))
+        {
+            ok = true;
+            return hit.point;
         }
-        ok = false; start.y = Mathf.Max(minY, start.y - groundRayHeight);
+
+        ok = false;
+        start.y = Mathf.Max(minY, start.y - groundRayHeight);
+
         return start;
     }
 
-    static LayerMask LayerMaskField(string label, LayerMask selected) {
-        var names = GetLayerNames();
+    static LayerMask LayerMaskField(string label, LayerMask selected)
+    {
+        string[] names = GetLayerNames();
+
         int maskNoEmpty = 0;
-        for (int i = 0; i < names.Length; i++) {
+
+        for (int i = 0; i < names.Length; i++)
+        {
             int layer = LayerMask.NameToLayer(names[i]);
-            if (((selected.value >> layer) & 1) == 1) maskNoEmpty |= (1 << i);
+
+            if (((selected.value >> layer) & 1) == 1)
+                maskNoEmpty |= (1 << i);
         }
+
         maskNoEmpty = EditorGUILayout.MaskField(label, maskNoEmpty, names);
+
         int mask = 0;
-        for (int i = 0; i < names.Length; i++) {
-            if ((maskNoEmpty & (1 << i)) != 0) {
+
+        for (int i = 0; i < names.Length; i++)
+        {
+            if ((maskNoEmpty & (1 << i)) != 0)
+            {
                 int layer = LayerMask.NameToLayer(names[i]);
                 mask |= (1 << layer);
             }
         }
-        selected.value = mask; return selected;
+
+        selected.value = mask;
+
+        return selected;
     }
 
-    static string[] GetLayerNames() {
-        var list = new List<string>();
-        for (int i = 0; i < 32; i++) {
-            var n = LayerMask.LayerToName(i);
-            if (!string.IsNullOrEmpty(n)) list.Add(n);
+    static string[] GetLayerNames()
+    {
+        List<string> list = new List<string>();
+
+        for (int i = 0; i < 32; i++)
+        {
+            string layerName = LayerMask.LayerToName(i);
+
+            if (!string.IsNullOrEmpty(layerName))
+                list.Add(layerName);
         }
-        if (list.Count == 0) list.Add("Default");
+
+        if (list.Count == 0)
+            list.Add("Default");
+
         return list.ToArray();
     }
 
-    void Ping(Object o) {
+    void Ping(Object o)
+    {
         if (!o) return;
+
         EditorGUIUtility.PingObject(o);
         Selection.activeObject = o;
     }

@@ -385,42 +385,129 @@ public class EnemyManager : MonoBehaviour {
     }
 
     public void ApplyArchetype(EnemyArchetype src = null) {
-        var a = src ? src : archetype;
+        EnemyArchetype a = src ? src : archetype;
         if (!a) return;
 
+        // Rol
         role = a.role;
+
+        // Visión y rangos
         detectionRange = a.detectionRange;
         attackRange = a.attackRange;
         viewAngle = a.viewAngle;
 
+        // Movimiento
         moveSpeed = a.moveSpeed;
         turnSpeed = a.turnSpeed;
         stoppingDistance = a.stoppingDistance;
         turnDst = a.turnDst;
 
+        // Memoria
         targetMemorySeconds = a.targetMemorySeconds;
 
+        // Persecución
         chaseMaxLostSightTime = a.chaseMaxLostSightTime;
         chaseExitDistanceExtra = a.chaseExitDistanceExtra;
         chaseRepathInterval = a.chaseRepathInterval;
         chaseRequireLineOfSight = a.chaseRequireLineOfSight;
 
+        // Ataque
         maxLostSightTime = a.maxLostSightTime;
         exitAttackExtra = a.exitAttackExtra;
 
+        // Cobertura
+        canUseCover = a.canUseCover;
+        coverLowHealthThreshold = a.coverLowHealthThreshold;
+        coverUnderFireWindow = a.coverUnderFireWindow;
+        coverMaxSearchRadius = a.coverMaxSearchRadius;
+        coverChanceOnHit = a.coverChanceOnHit;
+        coverRetryCooldown = a.coverRetryCooldown;
+        coverDuration = a.coverDuration;
+
+        // Melee
+        canUseMelee = a.canUseMelee;
+        meleeTriggerDistance = a.meleeTriggerDistance;
+        meleeRange = a.meleeRange;
+        meleeHitRadius = a.meleeHitRadius;
+        meleeForwardOffset = a.meleeForwardOffset;
+        meleeAngle = a.meleeAngle;
+        meleeDamage = a.meleeDamage;
+        meleeCooldown = a.meleeCooldown;
+        meleeFailSafeSeconds = a.meleeFailSafeSeconds;
+        meleeHitMask = a.meleeHitMask;
+        postMeleeShootBlockSeconds = a.postMeleeShootBlockSeconds;
+
+        // Combate lateral / colisiones
+        canStrafe = a.canStrafe;
+        combatObstacleMask = a.combatObstacleMask;
+        combatSkin = a.combatSkin;
+        strafeSpeedFactor = a.strafeSpeedFactor;
+        strafeBlockedFramesToFlip = a.strafeBlockedFramesToFlip;
+
+        // Follow
         followRepathInterval = a.followRepathInterval;
         followAnchorMoveThreshold = a.followAnchorMoveThreshold;
         followSeparationStrength = a.followSeparationStrength;
         followSeparationRadius = a.followSeparationRadius;
 
-        if (shooter) {
+        // Wander
+        enableWander = a.enableWander;
+        wanderRadius = a.wanderRadius;
+        wanderWaitMin = a.wanderWaitMin;
+        wanderWaitMax = a.wanderWaitMax;
+        wanderRepathInterval = a.wanderRepathInterval;
+        wanderArriveTolerance = a.wanderArriveTolerance;
+        wanderRetargetEvery = a.wanderRetargetEvery;
+
+        // Hearing
+        enableHearing = a.enableHearing;
+        hearingRange = a.hearingRange;
+        hearingCooldownSeconds = a.hearingCooldownSeconds;
+        investigateWaitSeconds = a.investigateWaitSeconds;
+
+        // LOD
+        currentLOD = a.currentLOD;
+        aiTickIntervalHigh = a.aiTickIntervalHigh;
+        aiTickIntervalMedium = a.aiTickIntervalMedium;
+        aiTickIntervalLow = a.aiTickIntervalLow;
+
+        // Sincronizar collider de visión
+        if (visionCollider)
+            visionCollider.radius = detectionRange;
+
+        // Sincronizar movimiento interno
+        if (unit)
+            unit.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
+
+        // Configuración del disparo
+        if (shooter && a.applyShooterSettings)
+        {
+            shooter.fireMode = a.fireMode;
             shooter.fireRange = a.fireRange;
             shooter.cooldownSeconds = a.cooldownSeconds;
             shooter.spawnOffset = a.spawnOffset;
-        }
 
-        if (visionCollider) visionCollider.radius = detectionRange;
-        if (unit) unit.ConfigureMovement(moveSpeed, turnSpeed, stoppingDistance, turnDst);
+            if (a.bulletSettings)
+                shooter.bulletSettings = a.bulletSettings;
+
+            shooter.raycastMask = a.raycastMask;
+            shooter.raycastDamage = a.raycastDamage;
+            shooter.raycastIgnoreTriggers = a.raycastIgnoreTriggers;
+
+            shooter.targetHeightOffset = a.targetHeightOffset;
+            shooter.lineOfFireMask = a.lineOfFireMask;
+            shooter.ignoreTriggersInLineOfFire = a.ignoreTriggersInLineOfFire;
+
+            shooter.useAmmo = a.useAmmo;
+            shooter.clipSize = Mathf.Max(1, a.clipSize);
+            shooter.reloadDuration = Mathf.Max(0f, a.reloadDuration);
+            shooter.autoReload = a.autoReload;
+
+            if (a.startWithFullAmmo)
+            {
+                shooter.currentAmmo = shooter.clipSize;
+            }
+        }
     }
 
     public Transform[] patrolPoints;

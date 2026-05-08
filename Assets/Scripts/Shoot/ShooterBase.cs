@@ -4,22 +4,22 @@ public abstract class ShooterBase : MonoBehaviour
 {
     public enum FireMode { Projectile, Raycast }
 
-    [Header("Fire Mode")]
+    [Header("Modo de disparo")]
     public FireMode fireMode = FireMode.Projectile;
 
-    [Header("Common")]
+    [Header("Configuración común")]
     public Transform firePoint;
     [Min(0f)] public float cooldownSeconds = 0.25f;
     public float fireRange = 25f;
     public float spawnOffset = 0.15f;
 
-    [Header("Projectile (Pool)")]
+    [Header("Disparo con proyectil")]
     public BulletPool bulletPool;
     public BulletSettings bulletSettings;
 
-    [Header("Raycast")]
+    [Header("Disparo por Raycast")]
     public LayerMask raycastMask = ~0;
-    public int raycastDamage = 10;
+    public float raycastDamage = 10f;
 
     [Tooltip("Si tus Hitbox son TRIGGER, pon esto en FALSE para que el raycast los detecte.")]
     public bool raycastIgnoreTriggers = true;

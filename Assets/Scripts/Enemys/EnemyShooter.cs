@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class EnemyShooter : ShooterBase
 {
-    [Header("Aim Setup")]
+    [Header("Apuntado")]
     [Tooltip("Origen del aim/raycast. Recomendado: Head/Chest (más estable que el arma).")]
     public Transform aimOrigin;
 
@@ -12,11 +12,11 @@ public class EnemyShooter : ShooterBase
     [Tooltip("Altura a la que intentamos pegarle al target (pecho/cabeza).")]
     public float targetHeightOffset = 1.5f;
 
-    [Header("Line of Fire (ally check / obstacles)")]
+    [Header("Línea de tiro")]
     public LayerMask lineOfFireMask = ~0;
     public bool ignoreTriggersInLineOfFire = true;
 
-    [Header("Ammo / Reload")]
+    [Header("Munición y recarga")]
     public bool useAmmo = true;
     public int clipSize = 10;
     public int currentAmmo = -1;
