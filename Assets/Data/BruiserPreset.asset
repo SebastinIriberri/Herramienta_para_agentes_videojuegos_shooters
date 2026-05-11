@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee74af88a98b0ab4ca643deafd197608, type: 3}
+  m_Name: BruiserPreset
+  m_EditorClassIdentifier: 
+  role: 1
+  detectionRange: 15
+  attackRange: 7
+  viewAngle: 140
+  moveSpeed: 2.6
+  turnSpeed: 4.5
+  stoppingDistance: 1.4
+  turnDst: 5
+  targetMemorySeconds: 5
+  chaseMaxLostSightTime: 6
+  chaseExitDistanceExtra: 3
+  chaseRepathInterval: 0.3
+  chaseRequireLineOfSight: 0
+  maxLostSightTime: 4
+  exitAttackExtra: 1
+  canUseCover: 0
+  coverLowHealthThreshold: 0.35
+  coverUnderFireWindow: 2.5
+  coverMaxSearchRadius: 12
+  coverChanceOnHit: 0.6
+  coverRetryCooldown: 2.5
+  coverDuration: 2
+  canUseMelee: 1
+  meleeTriggerDistance: 3
+  meleeRange: 2
+  meleeHitRadius: 0.9
+  meleeForwardOffset: 1.1
+  meleeAngle: 130
+  meleeDamage: 40
+  meleeCooldown: 2.5
+  meleeFailSafeSeconds: 1.8
+  meleeHitMask:
+    serializedVersion: 2
+    m_Bits: 512
+  postMeleeShootBlockSeconds: 1
+  canStrafe: 0
+  combatObstacleMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  combatSkin: 0.05
+  strafeSpeedFactor: 0.6
+  strafeBlockedFramesToFlip: 6
+  followRepathInterval: 0.35
+  followAnchorMoveThreshold: 0.25
+  followSeparationStrength: 0.6
+  followSeparationRadius: 1.2
+  enableWander: 1
+  wanderRadius: 6
+  wanderWaitMin: 1
+  wanderWaitMax: 2
+  wanderRepathInterval: 1
+  wanderArriveTolerance: 0.4
+  wanderRetargetEvery: {x: 5, y: 8}
+  enableHearing: 1
+  hearingRange: 20
+  hearingCooldownSeconds: 3
+  investigateWaitSeconds: 2.5
+  currentLOD: 0
+  aiTickIntervalHigh: 0
+  aiTickIntervalMedium: 0.25
+  aiTickIntervalLow: 1
+  applyShooterSettings: 1
+  fireMode: 0
+  fireRange: 25
+  cooldownSeconds: 0.35
+  spawnOffset: 0.15
+  bulletSettings: {fileID: 0}
+  raycastMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  raycastDamage: 10
+  raycastIgnoreTriggers: 1
+  targetHeightOffset: 1.5
+  lineOfFireMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  ignoreTriggersInLineOfFire: 1
+  useAmmo: 1
+  clipSize: 10
+  startWithFullAmmo: 1
+  reloadDuration: 2
+  autoReload: 1
