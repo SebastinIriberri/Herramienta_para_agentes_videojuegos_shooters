@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   clip: {fileID: 8300000, guid: dee4114fb5c499a4fa242110c77f41e0, type: 3}
-  mixerGroup: {fileID: 0}
+  mixerGroup: {fileID: 6760917716347894897, guid: e0b7f4650877ef1428960f3111614880, type: 2}
   loop: 0
   playOnAwake: 0
   frequentSound: 0
